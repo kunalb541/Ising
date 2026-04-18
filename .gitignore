@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Numba cache
+.numba_cache/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# LaTeX build artefacts
+paperNotes.bib
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+
+# Outputs to exclude from version control
+outputs/logs/
+outputs/ising_c2_redesigned/
+
+# Virtual environments
+.env
+venv/
+env/
+
+# Claude
+.claude/
