@@ -475,6 +475,21 @@ $\delta W_i < 0$, selecting wall-relevant transitions.
 \paragraph{Gap asymmetry.}
 The aligned and misaligned gaps are not equal in magnitude: at $\varepsilon=0.10$ the aligned gap is $+\AxisBAlignedTen$ while the misaligned gap is $\AxisBMisalnTen$, a ratio of approximately $\AxisBAsymRatio\times$. This asymmetry has a structural explanation. Fully exposed sites at $T=\IsingTOrd$ flip with probability $P\approx 0.988$ under the unperturbed Glauber kernel; the aligned arm can add at most $\min(1, 0.988+\varepsilon)-0.988 \approx \varepsilon_{\rm eff}\ll\varepsilon$ (ceiling effect), while the misaligned arm subtracts the full $\varepsilon$ (no floor reached). The misaligned arm therefore perturbs the dynamics more strongly at the same nominal $\varepsilon$, producing a larger gap magnitude. This asymmetry is expected and does not undermine the sign-flip discriminator; it does mean the experiment is a stronger test of suppression than of promotion at these temperatures.
 
+\paragraph{Direction dominance.}
+A companion probe ($N=2000$ worlds, same $L$, $K$, $T$) tested whether
+\emph{which sites} receive the bias matters---comparing a site-selection
+aligned arm against a site-selection anti-aligned arm at the same nominal
+$\varepsilon$.
+No CI-supported advantage for site-selection alignment was found at any
+$\varepsilon \in \{0.02, 0.05, 0.10, 0.20\}$; all confidence intervals
+straddled zero.
+The causal leverage therefore resides in the \emph{direction} of flips
+(toward wall-reducing transitions) rather than in site identity per se.
+This is consistent with the ceiling effect described above: exposed sites
+are already at $P_{\rm flip}\approx 0.988$, so choosing \emph{which}
+exposed site to bias has negligible impact compared with choosing
+\emph{whether} to increase or decrease the flip probability.
+
 \paragraph{Target specificity.}
 Figure~\ref{fig:axis4_spec} shows the $\Delta M$ effect.
 The dominant causal effect is on $\Delta W$.
@@ -627,6 +642,25 @@ A scientist selecting an intervention target based on predictive accuracy
 alone could not distinguish between these two descriptions---and would
 lose the ability to perform the direction-specific control demonstrated
 in Axis~4.
+
+\subsection{Cross-system comparison}
+
+The distinction between site-selection and flip-direction causal leverage
+is not universal.
+In a companion cellular-automaton (CA) study, site-selection
+\emph{anti-alignment}---biasing transitions \emph{away} from the
+structure-predicted target---produced a consistent effect across all
+12 tested conditions, indicating that site identity is the operative
+causal handle in that system.
+The Ising and CA results are therefore qualitatively different:
+in Ising, causal power is direction-dominated because exposed sites are
+already near the flip-probability ceiling; in the CA, causal power is
+site-selection dominated because site identity determines transition
+eligibility in a way that is not saturated.
+These two systems provide an empirical contrast suggesting that the
+dominant form of causal leverage---site-structural identity versus
+transition direction---varies with the dynamical regime and the degree
+to which flip probabilities are already saturated by the base dynamics.
 
 \subsection{Limitations and extensions}
 
