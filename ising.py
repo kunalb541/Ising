@@ -565,7 +565,8 @@ def fig_schematic(sp0):
     ax.set_title("Ising structural objects",fontsize=12,fontweight='bold')
     ax.set_xticks([]); ax.set_yticks([])
     fig.tight_layout()
-    p=FIGS/"ising_schematic.png"; fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    p=FIGS/"ising_schematic.png"; fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -591,7 +592,8 @@ def fig_axis1(org_results):
     ax.set_title(f"Axis 1 — Organism comparison  (target: $\\Delta W$, $T={T_ORD}$, $L={L}$, $K={K}$)",
                  fontsize=11)
     fig.tight_layout()
-    p=FIGS/"ising_axis1_organism.png"; fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    p=FIGS/"ising_axis1_organism.png"; fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -612,7 +614,8 @@ def fig_axis2(tgt_results, best_org):
     ax.set_ylabel(r"$\Delta R^2$ (champion organism $-$ $\phi_{\rm var8}$)",fontsize=10.5)
     ax.set_title(f"Axis 2 — Target comparison: fine-over-coarse $\\Delta R^2$  ({best_org}, $T={T_ORD}$)",fontsize=11)
     fig.tight_layout()
-    p=FIGS/"ising_axis2_target.png"; fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    p=FIGS/"ising_axis2_target.png"; fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -651,7 +654,8 @@ def fig_axisB_sign_flip(causal_arr):
     ax.legend(fontsize=9.5,loc='upper left')
     fig.tight_layout()
     p=FIGS/"ising_axisB_aligned_vs_misaligned.png"
-    fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -685,7 +689,8 @@ def fig_axisB_target_specificity(causal_arr):
                  fontsize=12,fontweight='bold',y=1.01)
     fig.tight_layout()
     p=FIGS/"ising_axisB_target_specificity.png"
-    fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -768,7 +773,8 @@ def fig_summary(org_results, dr2_ord, dr2_dis, causal_arr, tgt_results):
                  fontsize=11,fontweight='bold')
     fig.tight_layout()
     p=FIGS/"ising_main_summary_panel.png"
-    fig.savefig(p,dpi=160,bbox_inches="tight"); plt.close(fig)
+    fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
 
 
@@ -838,7 +844,14 @@ def save_outputs(org_results, tgt_results, causal_arr,
         cmd("IsingL",str(L)), cmd("IsingK",str(K)),
         cmd("IsingTOrd",tf(T_ORD,2)), cmd("IsingTDis",tf(T_DIS,2)),
         cmd("IsingEquil",str(EQUIL)),
-        cmd("BestOrganism",best_org['name'].replace("_",r"\_")),
+        cmd("BestOrganism",{
+            "E_ge3_plus_J": r"$E_{\geq 3}+J$",
+            "E_plus_J":     r"$E+J$",
+            "E_ge3":        r"$E_{\geq 3}$",
+            "E":            r"$E$",
+            "J":            r"$J$",
+            "minority":     r"minority",
+        }.get(best_org['name'], best_org['name'].replace("_",r"\_"))),
         cmd("AxisOneDR",tf(best_org['dr2'])),
         cmd("AxisOneDRlo",tf(best_org['ci_lo'])),
         cmd("AxisOneDRhi",tf(best_org['ci_hi'])),
