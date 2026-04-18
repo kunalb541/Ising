@@ -246,12 +246,16 @@ def test_junction_corner_vs_collinear():
 
 def test_causal_direction():
     """
-    Run a small causal experiment (N=200 worlds, eps=0.10).
+    Run a small causal experiment (N=500 worlds, eps=0.05 and 0.20).
     Verify: mean aligned gap > 0, mean misaligned gap < 0.
     The sign-flip discriminator should hold on average.
+    NOTE: At T=1.80 exposed sites flip with p≈0.988 (ceiling effect),
+    so the aligned gap is smaller in magnitude than the misaligned gap.
+    We use eps=0.05 and eps=0.20 together (averaged) for a more robust signal,
+    and N=500 to reduce Monte Carlo noise on the aligned direction.
     """
-    N = 200
-    eps_test = [0.10]
+    N = 500
+    eps_test = [0.05, 0.20]
     jobs = [(42 + s, eps_test) for s in range(N)]
 
     results = []
@@ -259,9 +263,10 @@ def test_causal_direction():
         res = ising.sim_causal_world(job)
         results.append(res)
 
-    arr = np.array(results)  # (N, 1, 4)
-    al_gap = arr[:, 0, 0]   # aligned gap on dW
-    mi_gap = arr[:, 0, 1]   # misaligned gap on dW
+    arr = np.array(results)  # (N, 2, 4)
+    # Average over the two eps values for robustness
+    al_gap = (arr[:, 0, 0] + arr[:, 1, 0]) / 2.0  # aligned gap on dW
+    mi_gap = (arr[:, 0, 1] + arr[:, 1, 1]) / 2.0  # misaligned gap on dW
 
     mean_al = float(np.mean(al_gap))
     mean_mi = float(np.mean(mi_gap))

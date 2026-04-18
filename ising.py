@@ -66,7 +66,7 @@ K        = 20
 T_ORD    = 1.80;  BETA_ORD = 1.0 / T_ORD
 T_DIS    = 2.50;  BETA_DIS = 1.0 / T_DIS
 BLOCK    = 8
-EPS_LIST = [0.02, 0.05, 0.10, 0.20]
+EPS_LIST = [0.00, 0.02, 0.05, 0.10, 0.20]
 ALPHA    = 1.0
 
 OUT      = Path("outputs")
@@ -239,6 +239,11 @@ def run_glauber(spins, beta, n):
 
 
 @njit(cache=False)
+def numba_seed(s):
+    np.random.seed(s)
+
+
+@njit(cache=False)
 def wall_count(spins):
     L2=spins.shape[0]; W=0
     for i in range(L2):
@@ -382,12 +387,14 @@ def build_exposed_mask(spins):
 
 
 @njit(cache=False)
-def structure_aligned_sweep(spins, beta, mask, eps, aligned):
+def structure_aligned_sweep(spins, beta, eps, aligned):
     """
-    Checkerboard Glauber with structure-aligned generator bias at exposed sites.
-    aligned=True:  dW<0 flip -> p_flip += eps  (promote wall-reducing flips)
-    aligned=False: dW<0 flip -> p_flip -= eps  (suppress wall-reducing flips)
-    This is the CORRECT causal experiment, not a baseline-gap test.
+    Checkerboard Glauber with structure-aligned generator bias.
+    DYNAMIC: exposed sites (d_c=4) identified each sweep from current spin state.
+    d_c=4 ↔ s*h == -4 (all 4 neighbours unlike current spin).
+    For these sites dW=-4 always; aligned promotes, misaligned suppresses.
+    aligned=True:  p_flip += eps at each currently-exposed site
+    aligned=False: p_flip -= eps at each currently-exposed site
     """
     L2=spins.shape[0]
     for parity in range(2):
@@ -399,30 +406,18 @@ def structure_aligned_sweep(spins, beta, mask, eps, aligned):
                 s=spins[i,j]
                 h=(spins[im1,j]+spins[ip1,j]+spins[i,jm1]+spins[i,jp1])
                 p=1.0/(1.0+math.exp(beta*(2.0*s*h)))
-                if mask[i,j]==1 and eps>0.0:
-                    dW=0
-                    b=1 if spins[im1,j]!=s else 0
-                    a=1 if spins[im1,j]!=-s else 0; dW+=a-b
-                    b=1 if spins[ip1,j]!=s else 0
-                    a=1 if spins[ip1,j]!=-s else 0; dW+=a-b
-                    b=1 if spins[i,jm1]!=s else 0
-                    a=1 if spins[i,jm1]!=-s else 0; dW+=a-b
-                    b=1 if spins[i,jp1]!=s else 0
-                    a=1 if spins[i,jp1]!=-s else 0; dW+=a-b
-                    if aligned:
-                        if dW<0: p+=eps
-                        elif dW>0: p-=eps
-                    else:
-                        if dW<0: p-=eps
-                        elif dW>0: p+=eps
+                if s*h==-4 and eps>0.0:
+                    # d_c=4: dW=-4 always; aligned promotes, misaligned suppresses
+                    if aligned: p+=eps
+                    else:       p-=eps
                     if p<0.0: p=0.0
                     if p>1.0: p=1.0
                 if np.random.random()<p: spins[i,j]=-s
 
 
 @njit(cache=False)
-def run_aligned(spins, beta, mask, eps, aligned_bool, n):
-    for _ in range(n): structure_aligned_sweep(spins, beta, mask, eps, aligned_bool)
+def run_aligned(spins, beta, eps, aligned_bool, n):
+    for _ in range(n): structure_aligned_sweep(spins, beta, eps, aligned_bool)
 
 
 # =============================================================================
@@ -437,9 +432,10 @@ def warmup():
     count_minority(d); phi_var8(d)
     d8=np.ones((8,8),dtype=np.int8)
     count_changed_sites(d8,d8); future_topshare(d8,d8)
-    m=build_exposed_mask(d); structure_aligned_sweep(d,0.5,m,0.05,True)
-    structure_aligned_sweep(d,0.5,m,0.05,False)
-    run_aligned(d,0.5,m,0.05,True,1); run_aligned(d,0.5,m,0.05,False,1)
+    numba_seed(0)
+    structure_aligned_sweep(d,0.5,0.05,True)
+    structure_aligned_sweep(d,0.5,0.05,False)
+    run_aligned(d,0.5,0.05,True,1); run_aligned(d,0.5,0.05,False,1)
     log("warmup OK")
 
 
@@ -450,6 +446,7 @@ def warmup():
 def sim_pred_world(args):
     seed, beta = args
     np.random.seed(seed)
+    numba_seed(seed)
     spins=np.random.choice(np.array([-1,1],dtype=np.int8),size=(L,L))
     run_glauber(spins, beta, EQUIL)
     sp0=spins.copy(); W0=wall_count(sp0)
@@ -484,10 +481,11 @@ def sim_causal_world(args):
     """
     seed, eps_list = args
     np.random.seed(seed)
+    numba_seed(seed)
     spins=np.random.choice(np.array([-1,1],dtype=np.int8),size=(L,L))
     run_glauber(spins, BETA_ORD, EQUIL)
     sp0=spins.copy(); W0=wall_count(sp0); M0=abs_mag(sp0)
-    mask=build_exposed_mask(sp0)
+    # No fixed mask — structure_aligned_sweep identifies exposed sites dynamically
 
     # baseline: pure unperturbed Glauber
     base=sp0.copy(); run_glauber(base, BETA_ORD, K)
@@ -495,12 +493,10 @@ def sim_causal_world(args):
 
     results=np.zeros((len(eps_list),4),dtype=np.float64)
     for ei, eps in enumerate(eps_list):
-        # ALIGNED arm: promote wall-reducing flips at exposed sites
-        al=sp0.copy(); run_aligned(al, BETA_ORD, mask, float(eps), True, K)
+        al=sp0.copy(); run_aligned(al, BETA_ORD, float(eps), True, K)
         al_dW=wall_count(al)-W0; al_dM=abs_mag(al)-M0
 
-        # MISALIGNED arm: suppress wall-reducing flips at exposed sites
-        mis=sp0.copy(); run_aligned(mis, BETA_ORD, mask, float(eps), False, K)
+        mis=sp0.copy(); run_aligned(mis, BETA_ORD, float(eps), False, K)
         mis_dW=wall_count(mis)-W0; mis_dM=abs_mag(mis)-M0
 
         results[ei,0]=base_dW-al_dW    # aligned gap on dW  (want >0)
@@ -570,7 +566,7 @@ def fig_schematic(sp0):
     log(f"  fig: {p.name}")
 
 
-def fig_axis1(org_results):
+def fig_axis1(org_results, ref_dr2=None):
     names=[r['name'] for r in org_results]
     means=[r['dr2'] for r in org_results]
     los=[r['ci_lo'] for r in org_results]
@@ -584,6 +580,10 @@ def fig_axis1(org_results):
                 yerr=[[m-l for m,l in zip(means,los)],[h-m for m,h in zip(means,his)]],
                 fmt='none',color='#222222',capsize=4,lw=1.8,zorder=4)
     ax.axhline(0,color='black',lw=0.9,ls='--',zorder=2)
+    if ref_dr2 is not None:
+        ax.axhline(ref_dr2, color='#888800', lw=1.4, ls=':', zorder=5,
+                   label=r"$[W_0,B_{\rm mag}]$ vs $\phi_{\rm var8}$ threshold")
+        ax.legend(fontsize=9, loc='lower right')
     best_i=int(np.argmax(means))
     ax.annotate("best",xy=(x[best_i],his[best_i]+0.005),ha='center',
                 fontsize=9.5,color='#1a5276',fontweight='bold')
@@ -646,7 +646,7 @@ def fig_axisB_sign_flip(causal_arr):
         if al_lo[ei]>0 and mi_hi[ei]<0:
             ax.annotate(r"$\checkmark$",xy=(x[ei],y_check),ha='center',
                         fontsize=14,color='#1a7a1a',fontweight='bold')
-    ax.set_xticks(x); ax.set_xticklabels([str(e) for e in EPS_LIST],fontsize=11)
+    ax.set_xticks(x); ax.set_xticklabels(['0 (null)' if e==0 else str(e) for e in EPS_LIST],fontsize=11)
     ax.set_xlabel(r"Generator bias $\varepsilon$",fontsize=12)
     ax.set_ylabel(r"Gap vs baseline $(\Delta W_{\rm base} - \Delta W_{\rm arm})$",fontsize=11)
     ax.set_title("Axis B — Direction-specific generator control\n"
@@ -683,7 +683,7 @@ def fig_axisB_target_specificity(causal_arr):
                     yerr=[[m-l for m,l in zip(mi_m,mi_lo)],[h-m for m,h in zip(mi_m,mi_hi)]],
                     fmt='none',color='#222222',capsize=4,lw=1.8,zorder=4)
         ax.axhline(0,color='black',lw=0.9,ls='--',zorder=2)
-        ax.set_xticks(x); ax.set_xticklabels([str(e) for e in EPS_LIST])
+        ax.set_xticks(x); ax.set_xticklabels(['0 (null)' if e==0 else str(e) for e in EPS_LIST])
         ax.set_xlabel(r"$\varepsilon$",fontsize=12)
         ax.set_ylabel("Gap vs baseline",fontsize=11)
         ax.set_title(f"Target: {title}",fontsize=11)
@@ -786,7 +786,9 @@ def fig_summary(org_results, dr2_ord, dr2_dis, causal_arr, tgt_results):
 # =============================================================================
 
 def save_outputs(org_results, tgt_results, causal_arr,
-                 dr2_ord, dr2_dis, r2_wb, r2_e):
+                 dr2_ord, dr2_dis, r2_wb, r2_e,
+                 dr2_vs_wb=0.0, lo_vs_wb=0.0, hi_vs_wb=0.0,
+                 dr2_ch_ord=None, dr2_ch_dis=None, asym_at_10=float('nan')):
 
     # tables
     save_csv(pd.DataFrame(org_results), TABS/"axis1_organisms.csv")
@@ -807,7 +809,8 @@ def save_outputs(org_results, tgt_results, causal_arr,
 
     best_org=max(org_results,key=lambda r:r['dr2'])
     best_tgt=max(tgt_results,key=lambda r:r['dr2'])
-    n_flip=int(df_c['sign_flip'].sum())
+    n_flip=int(df_c[df_c['eps']>0]['sign_flip'].sum())
+    n_eps_nz=int((df_c['eps']>0).sum())
     row10=df_c[df_c['eps']==0.10].iloc[0]
 
     vals={
@@ -825,16 +828,16 @@ def save_outputs(org_results, tgt_results, causal_arr,
         "axis2_best_r2_fine":best_tgt['r2_fine'],
         "axis2_best_r2_coarse":best_tgt['r2_coarse'],
         "axisC_r2_wb":r2_wb,"axisC_r2_e":r2_e,"axisC_gap":r2_wb-r2_e,
-        "axisB_n_sign_flip":n_flip,"axisB_n_eps":len(EPS_LIST),
-        "axisB_all_pass":n_flip==len(EPS_LIST),
+        "axisB_n_sign_flip":n_flip,"axisB_n_eps":n_eps_nz,
+        "axisB_all_pass":n_flip==n_eps_nz,
         "axisB_aligned_eps10":float(row10['aligned_gap']),
         "axisB_aligned_lo10":float(row10['aligned_lo']),
         "axisB_aligned_hi10":float(row10['aligned_hi']),
         "axisB_misaln_eps10":float(row10['misaligned_gap']),
         "axisB_misaln_lo10":float(row10['misaligned_lo']),
         "axisB_misaln_hi10":float(row10['misaligned_hi']),
-        "axisB_support":n_flip==len(EPS_LIST),
-        "axisB_read":("earned" if n_flip==len(EPS_LIST)
+        "axisB_support":n_flip==n_eps_nz,
+        "axisB_read":("earned" if n_flip==n_eps_nz
                       else "earned_narrow" if n_flip>=3
                       else "not_earned"),
     }
@@ -871,10 +874,14 @@ def save_outputs(org_results, tgt_results, causal_arr,
         cmd("AxisTwoRCoarse",tf(best_tgt['r2_coarse'])),
         cmd("AxisCRWB",tf(r2_wb)), cmd("AxisCRE",tf(r2_e)),
         cmd("AxisCGap",tf(r2_wb-r2_e)),
-        cmd("AxisBSignFlips",f"{n_flip}/{len(EPS_LIST)}"),
+        cmd("AxisBSignFlips",f"{n_flip}/{n_eps_nz}"),
         cmd("AxisBAlignedTen",tf(float(row10['aligned_gap']),2)),
         cmd("AxisBMisalnTen",tf(float(row10['misaligned_gap']),2)),
         cmd("AxisBSupport",vals['axisB_read'].upper().replace("_"," ")),
+        cmd("AxisOneVsWB",tf(dr2_vs_wb)),
+        cmd("AxisOneVsWBlo",tf(lo_vs_wb)),
+        cmd("AxisOneVsWBhi",tf(hi_vs_wb)),
+        cmd("AxisBAsymRatio",tf(asym_at_10,1)),
     ]
     with open(DATA/"paper_macros.tex","w") as f: f.writelines(lines)
     log("  tables + JSON + macros saved")
@@ -954,6 +961,16 @@ def main():
     log(f"  Disordered T={T_DIS}: ΔR²={dr2_dis[0]:+.4f}  CI=[{dr2_dis[1]:+.4f},{dr2_dis[2]:+.4f}]")
     log(f"  Sign reversal: {dr2_ord[1]>0 and dr2_dis[2]<0}")
 
+    # Also verify crossover holds for champion E_ge3+J
+    XCh_o=design_matrix(best_org, feats_o)
+    XCh_d=design_matrix(best_org, feats_d)
+    dr2_ch_ord=dr2_boot(XCh_o,Xphi_o,dW_o,nb=N_BOOT//2,seed=11)
+    dr2_ch_dis=dr2_boot(XCh_d,Xphi_d,dW_d,nb=N_BOOT//2,seed=12)
+    log(f"  Champion ({best_org}) ordered:    ΔR²={dr2_ch_ord[0]:+.4f}  CI=[{dr2_ch_ord[1]:+.4f},{dr2_ch_ord[2]:+.4f}]")
+    log(f"  Champion ({best_org}) disordered: ΔR²={dr2_ch_dis[0]:+.4f}  CI=[{dr2_ch_dis[1]:+.4f},{dr2_ch_dis[2]:+.4f}]")
+    cham_reversal=(dr2_ch_ord[1]>0 and dr2_ch_dis[2]<0)
+    log(f"  Champion sign reversal: {cham_reversal}")
+
     # AXIS C — predictor/handle dissociation
     log("\n--- Axis C: predictor/handle gap ---")
     XW0=np.array([f['W0'] for f in feats_o]).reshape(-1,1)
@@ -963,6 +980,22 @@ def main():
     r2_wb=ridge_cv(Xcf,dW_o,seed=50)
     r2_e=ridge_cv(XE_c,dW_o,seed=51)
     log(f"  R²([W0,Bmag]): {r2_wb:.4f}  R²(E): {r2_e:.4f}  gap: {r2_wb-r2_e:+.4f}")
+
+    # Compare champion against [W0,Bmag] — the meaningful coarse rival
+    log("\n  Champion vs [W0,Bmag] (meaningful 2-feature coarse rival):")
+    Xbest_for_ref=design_matrix(best_org, feats_o)
+    dr2_vs_wb,lo_vs_wb,hi_vs_wb=dr2_boot(Xbest_for_ref,Xcf,dW_o,nb=N_BOOT,seed=9901)
+    r2_wb_pt=ridge_cv(Xcf,dW_o,seed=9902)
+    r2_phi_pt=ridge_cv(Xphi_o,dW_o,seed=9903)
+    ref_dr2_for_fig=r2_wb_pt-r2_phi_pt   # [W0,Bmag] advantage over phi_var8
+    log(f"  ΔR²({best_org} vs [W0,Bmag])={dr2_vs_wb:+.4f}  CI=[{lo_vs_wb:+.4f},{hi_vs_wb:+.4f}]")
+    log(f"  R²([W0,Bmag])={r2_wb_pt:.4f}  R²(phi8)={r2_phi_pt:.4f}  ref_dr2={ref_dr2_for_fig:+.4f}")
+
+    # Alpha sensitivity for champion
+    log("\n  Ridge α sensitivity (champion organism, target dW):")
+    for a_test in [0.01, 0.1, 1.0, 10.0]:
+        r2a=ridge_cv(design_matrix(best_org,feats_o),dW_o,alpha=a_test,seed=42)
+        log(f"  α={a_test:.2f}: R²={r2a:.4f}")
 
     # AXIS 2 — target comparison
     log(f"\n--- Axis 2: target comparison (ΔR² fine-over-coarse, predictor={best_org}) ---")
@@ -991,8 +1024,9 @@ def main():
                        [(SEED+90000+s,EPS_LIST) for s in range(N_CAUSAL)],"causal")
     causal_arr=np.array(out_c)  # (N_CAUSAL, n_eps, 4)
 
-    log("\n  eps   | aligned dW              | misaligned dW           | sign_flip | dM_vs_dW_ratio")
-    log("  " + "-" * 90)
+    log("\n  eps   | aligned dW              | misaligned dW           | sign_flip | dM_vs_dW_ratio | asym")
+    log("  " + "-" * 100)
+    asym_at_10 = float('nan')
     for ei, eps in enumerate(EPS_LIST):
         al_m,al_lo,al_hi = mci(causal_arr[:,ei,0], seed=ei*10+1)
         mi_m,mi_lo,mi_hi = mci(causal_arr[:,ei,1], seed=ei*10+2)
@@ -1005,10 +1039,16 @@ def main():
         log(f"  {eps:.2f}  | {al_m:+.3f} [{al_lo:+.3f},{al_hi:+.3f}] | "
             f"{mi_m:+.3f} [{mi_lo:+.3f},{mi_hi:+.3f}] | "
             f"{'PASS' if flip else 'FAIL':>9} | {dm_ratio:.3f} (dM/dW_aligned)")
+        if eps > 0:
+            asym = abs(mi_m)/al_m if al_m > 1e-6 else float('nan')
+            log(f"    gap asymmetry |misaligned|/aligned = {asym:.2f}x")
+            if abs(eps - 0.10) < 1e-9:
+                asym_at_10 = asym
 
     log("  NOTE on dM: the dominant effect is on ΔW; ΔM coupling is comparatively small.")
     log("  dM does not strictly null 4/4 — do not write 'ΔM null 4/4'.")
     log("  Paper wording: 'direction-specific on ΔW; ΔM remains comparatively small'.")
+    log(f"  Gap asymmetry at ε=0.10: {asym_at_10:.2f}x")
 
     # figures
     log("\n--- Generating figures ---")
@@ -1016,7 +1056,7 @@ def main():
     sp_s=np.random.choice(np.array([-1,1],dtype=np.int8),size=(L,L))
     run_glauber(sp_s,BETA_ORD,EQUIL)
     fig_schematic(sp_s)
-    fig_axis1(org_results)
+    fig_axis1(org_results, ref_dr2_for_fig)
     fig_axis2(tgt_results,best_org)
     fig_axisB_sign_flip(causal_arr)
     fig_axisB_target_specificity(causal_arr)
@@ -1025,7 +1065,10 @@ def main():
     # tables + macros
     log("\n--- Saving outputs ---")
     vals,df_c=save_outputs(org_results,tgt_results,causal_arr,
-                           dr2_ord,dr2_dis,r2_wb,r2_e)
+                           dr2_ord,dr2_dis,r2_wb,r2_e,
+                           dr2_vs_wb=dr2_vs_wb,lo_vs_wb=lo_vs_wb,hi_vs_wb=hi_vs_wb,
+                           dr2_ch_ord=dr2_ch_ord,dr2_ch_dis=dr2_ch_dis,
+                           asym_at_10=asym_at_10)
 
     # final report
     log("\n"+"="*70)
