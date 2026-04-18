@@ -25,13 +25,14 @@ Causal Control in Kinetic Ising Dynamics}
 
 %-----------------------------------------------------------------------
 \begin{abstract}
-We study how the choice of description affects predictive and causal information about future evolution in the two-dimensional kinetic Ising model. We report four empirical results together with a predictor-handle dissociation result.
+We ask whether predictive sufficiency implies causal access in the two-dimensional kinetic Ising model, and whether predictive ranking is stable across dynamical regimes. The answer to both is no. The central result is a predictor-handle dissociation: a coarse macro-state and the fine champion are statistically indistinguishable as predictors of future domain-wall change, yet only the fine structure yields a direction-specific causal handle. A regime-crossover result earns the regime-dependence qualifier and blocks the objection that fine descriptions win simply by having more bits. Four empirical axes support these claims.
 (\textbf{Axis~1, organism comparison})\;
 Fine descriptions based on locally exposed and junction-type defects outperform a
 block-variance coarse rival for predicting future domain-wall change in
 the ordered phase; the best organism is $E_{\geq 3}+J$, with predictive
 advantage $\Delta R^2 = +\AxisOneDR$
-(95\% CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$).
+(95\% CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$) against this rival,
+which achieves $R^2 \approx 0$ for $\Delta W$ at this temperature.
 (\textbf{Axis~2, regime crossover})\; This advantage reverses sign in the
 disordered phase ($+\AxisAOrdDR$ ordered, $\AxisADisDR$ disordered),
 showing that the fine-over-coarse advantage is regime-dependent.
@@ -70,18 +71,22 @@ regimes and tasks, is not always obvious.
 This paper studies how predictive and causal usefulness depend on the
 choice of description in a simple, well-understood dynamical system.
 
-We ask which fine description of an ordered Ising configuration predicts
-future interface evolution best; whether that advantage is regime-dependent;
-which future target is most specifically favoured by the fine description
-relative to a coarse rival; whether the fine structural description
-provides a direction-specific causal handle; and whether the best predictor
-coincides with the best causal handle.
-The first question fixes the target ($\Delta W$) and asks which organism
-wins; the third question fixes the champion organism and asks which target
-it most specifically favours over the coarse rival---these are distinct.
-The answers are, respectively:
-$E_{\geq 3}+J$; yes (reverses in the disordered phase); $\Delta W$; yes
-(\AxisBSignFlips{} sign-flip on active $\varepsilon$ values; the $\varepsilon=0$ null produces a gap consistent with zero as expected); and no (predictor and handle are dissociable).
+The central question is whether predictive sufficiency implies causal
+access: can a description that accurately forecasts future domain-wall
+change be used to controllably change it?
+We find the answer is no, and that the dissociation is not an artefact of
+a particular baseline choice: even the strongest available coarse rival
+$[W_0, B_\mathrm{mag}]$ matches the fine champion predictively
+($\Delta R^2 = \AxisOneVsWB$, CI includes zero), yet only the fine
+structure provides a direction-specific causal handle.
+The crossover result earns the regime-dependence qualifier: the
+fine-over-coarse predictive advantage reverses sign from ordered
+($+\AxisAOrdDR$) to disordered ($\AxisADisDR$ phase), blocking the
+objection that fine descriptions simply win by having more bits.
+The fine champion is $E_{\geq 3}+J$; the target most specifically
+favoured by fine descriptions is $\Delta W$; and the causal sign-flip
+holds across all \AxisBSignFlips{} active perturbation strengths
+(the $\varepsilon=0$ null produces a gap consistent with zero, as expected).
 
 \paragraph{Why the Ising model.}
 The 2D kinetic Ising model with Glauber dynamics
