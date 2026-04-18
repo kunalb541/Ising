@@ -629,7 +629,7 @@ def fig_axisB_sign_flip(causal_arr):
         m,lo,hi=mci(causal_arr[:,ei,1],seed=ei*10+2)
         mi_m.append(m); mi_lo.append(lo); mi_hi.append(hi)
 
-    fig,ax=plt.subplots(figsize=(7.5,4.8))
+    fig,ax=plt.subplots(figsize=(7.5,5.2))
     x=np.arange(len(EPS_LIST)); w=0.36
     ax.bar(x-w/2,al_m,w,color=C_ALIGN,alpha=0.85,label="Aligned (promotes wall reduction)",zorder=3)
     ax.bar(x+w/2,mi_m,w,color=C_MISALN,alpha=0.85,label="Misaligned (suppresses wall reduction)",zorder=3)
@@ -640,10 +640,11 @@ def fig_axisB_sign_flip(causal_arr):
                 yerr=[[m-l for m,l in zip(mi_m,mi_lo)],[h-m for m,h in zip(mi_m,mi_hi)]],
                 fmt='none',color='#222222',capsize=4,lw=1.8,zorder=4)
     ax.axhline(0,color='black',lw=0.9,ls='--',zorder=2)
+    y_check = max(al_hi) + 1.5          # consistent height in white space above all bars
+    ax.set_ylim(top=y_check + 2.5)      # ensure axis has room
     for ei in range(len(EPS_LIST)):
         if al_lo[ei]>0 and mi_hi[ei]<0:
-            ypos=max(al_hi[ei],0)+abs(min(mi_m[ei],0))*0.04+1.5
-            ax.annotate(u"\u2713",xy=(x[ei],ypos),ha='center',
+            ax.annotate(r"$\checkmark$",xy=(x[ei],y_check),ha='center',
                         fontsize=14,color='#1a7a1a',fontweight='bold')
     ax.set_xticks(x); ax.set_xticklabels([str(e) for e in EPS_LIST],fontsize=11)
     ax.set_xlabel(r"Generator bias $\varepsilon$",fontsize=12)
@@ -651,8 +652,10 @@ def fig_axisB_sign_flip(causal_arr):
     ax.set_title("Axis B — Direction-specific generator control\n"
                  r"Aligned $>0$, misaligned $<0$: both CIs exclude zero ($\checkmark$ = sign flip)",
                  fontsize=11)
-    ax.legend(fontsize=9.5,loc='upper left')
+    ax.legend(fontsize=9.5,loc='upper center',
+              bbox_to_anchor=(0.5,-0.14),ncol=2,borderaxespad=0)
     fig.tight_layout()
+    fig.subplots_adjust(bottom=0.18)
     p=FIGS/"ising_axisB_aligned_vs_misaligned.png"
     fig.savefig(p,dpi=160,bbox_inches="tight")
     fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
