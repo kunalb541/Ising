@@ -21,8 +21,6 @@ Causal Control in Kinetic Ising Dynamics}
 % ORCID 0009-0007-4447-6325 -- enter via APS submission portal
 \affiliation{Independent Researcher, Heidelberg, Germany}
 
-\date{\today}
-
 %-----------------------------------------------------------------------
 \begin{abstract}
 We ask whether predictive sufficiency implies causal access in the two-dimensional kinetic Ising model, and whether predictive ranking is stable across dynamical regimes. The answer to both is no. The central result is a predictor-handle dissociation: a coarse macro-state and the fine champion are statistically indistinguishable as predictors of future domain-wall change, yet only the fine structure yields a direction-specific causal handle. A regime-crossover result earns the regime-dependence qualifier and blocks the objection that fine descriptions win simply by having more bits. Four empirical axes support these claims.
@@ -234,7 +232,8 @@ Primary statistic:
 Confidence intervals use pairwise bootstrap resampling ($B=1000$)
 with the same configuration set for fine and coarse predictions.
 
-\textit{Reproducibility note:} Stochastic dynamics are implemented via Numba-compiled functions; the Numba random-number generator is seeded independently from the worker-level seed to ensure cross-run reproducibility. Reported confidence intervals are stable to this level of control.
+\paragraph{Reproducibility.}
+Stochastic dynamics are implemented via Numba-compiled functions; the Numba random-number generator is seeded independently from the worker-level seed to ensure cross-run reproducibility. Reported confidence intervals are stable to this level of control.
 
 \subsection{Causal protocol: aligned and misaligned generator bias}
 \label{sec:causal_protocol}
@@ -710,9 +709,11 @@ sign-flip on future $\Delta W$.
 All CIs exclude zero.
 
 \item \textbf{Predictor-handle dissociation:}
-$R^2([W_0, B_\mathrm{mag}]) = \AxisCRWB$,
-$R^2(E) = \AxisCRE$,
-gap $= +\AxisCGap$.
+$[W_0, B_\mathrm{mag}]$ ($R^2 = \AxisCRWB$) and $E_{\geq 3}+J$
+($R^2 \approx \AxisOneDR$) are statistically indistinguishable as
+predictors of $\Delta W$ ($\Delta R^2 = \AxisOneVsWB$, 95\% CI includes
+zero), yet only the fine structure serves as a direction-specific causal
+handle.
 The best predictor and the best causal handle are different objects.
 \end{enumerate}
 
