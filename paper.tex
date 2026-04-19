@@ -25,12 +25,13 @@ Causal Control in Kinetic Ising Dynamics}
 \begin{abstract}
 We ask whether predictive sufficiency implies causal access in the two-dimensional kinetic Ising model, and whether predictive ranking is stable across dynamical regimes. The answer to both is no. The central result is a predictor-handle dissociation: a coarse macro-state and the fine champion are statistically indistinguishable as predictors of future domain-wall change, yet only the fine structure yields a direction-specific causal handle. A regime-crossover result earns the regime-dependence qualifier and blocks the objection that fine descriptions win simply by having more bits. Four empirical axes support these claims.
 (\textbf{Axis~1, organism comparison})\;
-Fine descriptions based on locally exposed and junction-type defects outperform a
-block-variance coarse rival for predicting future domain-wall change in
-the ordered phase; the best organism is $E_{\geq 3}+J$, with predictive
-advantage $\Delta R^2 = +\AxisOneDR$
-(95\% CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$) against this rival,
-which achieves $R^2 \approx 0$ for $\Delta W$ at this temperature.
+Against a block-variance coarse rival that achieves $R^2 \approx 0$ for
+$\Delta W$ in the ordered phase (a near-null baseline), the fine champion
+$E_{\geq 3}+J$ achieves $\Delta R^2 = +\AxisOneDR$
+(95\% CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$).
+Against the stronger coarse rival $[W_0, B_\mathrm{mag}]$, the gap
+narrows to $\Delta R^2 = \AxisOneVsWB$ (CI includes zero): the two
+descriptions are statistically indistinguishable as predictors.
 (\textbf{Axis~2, regime crossover})\; This advantage reverses sign in the
 disordered phase ($+\AxisAOrdDR$ ordered, $\AxisADisDR$ disordered),
 showing that the fine-over-coarse advantage is regime-dependent.
@@ -480,24 +481,46 @@ $\delta W_i < 0$, selecting wall-relevant transitions.
 The aligned and misaligned gaps are not equal in magnitude: at $\varepsilon=0.10$ the aligned gap is $+\AxisBAlignedTen$ while the misaligned gap is $\AxisBMisalnTen$, a ratio of approximately $\AxisBAsymRatio\times$. This asymmetry has a structural explanation. Fully exposed sites at $T=\IsingTOrd$ flip with probability $P\approx 0.988$ under the unperturbed Glauber kernel; the aligned arm can add at most $\min(1, 0.988+\varepsilon)-0.988 \approx \varepsilon_{\rm eff}\ll\varepsilon$ (ceiling effect), while the misaligned arm subtracts the full $\varepsilon$ (no floor reached). The misaligned arm therefore perturbs the dynamics more strongly at the same nominal $\varepsilon$, producing a larger gap magnitude. This asymmetry is expected and does not undermine the sign-flip discriminator; it does mean the experiment is a stronger test of suppression than of promotion at these temperatures.
 
 \paragraph{Direction dominance.}
-A companion probe ($N=2000$ worlds, same $L$, $K$, $T$) tested whether
-\emph{which sites} receive the bias matters---comparing a site-selection
-aligned arm against a site-selection anti-aligned arm at the same nominal
-$\varepsilon$.
+A companion probe ($N=2000$ worlds, same $L$, $K$, $T$; the reduced
+sample size reflects the added cost of running three arms per world)
+tested whether, \emph{given} that $d_c=4$ sites are targeted,
+\emph{which individual site} within that class receives the bias
+matters---comparing a site-selection aligned arm against a site-selection
+anti-aligned arm at the same nominal $\varepsilon$.
 No CI-supported advantage for site-selection alignment was found at any
 $\varepsilon \in \{0.02, 0.05, 0.10, 0.20\}$; all confidence intervals
 straddled zero.
 The causal leverage therefore resides in the \emph{direction} of flips
-(toward wall-reducing transitions) rather than in site identity per se.
-This is consistent with the ceiling effect described above: exposed sites
-are already at $P_{\rm flip}\approx 0.988$, so choosing \emph{which}
-exposed site to bias has negligible impact compared with choosing
-\emph{whether} to increase or decrease the flip probability.
+(toward wall-reducing transitions) rather than in individual site identity
+\emph{within} the $d_c=4$ class.
+This is consistent with the ceiling effect: all $d_c=4$ sites are already
+at $P_{\rm flip}\approx 0.988$, so biasing one individual versus another
+within the class has negligible impact.
+
+Two levels of site-specificity must be distinguished.
+\emph{Class-level specificity} asks whether targeting the $d_c=4$
+structural class is necessary at all, compared with targeting random sites.
+This question was \emph{not} addressed by the companion probe and remains
+open; the present results establish the sign-flip for $d_c=4$ targeting
+but do not test the counterfactual of random-site targeting.
+\emph{Individual-level specificity} asks whether, given that $d_c=4$
+sites are targeted, the choice of which specific individual site matters.
+The companion probe answers this: it does not.
+The fine structure $E_{\geq 3}+J$ is relevant to class-level identification
+($d_c=4$ sites are geometrically special); direction-dominance operates
+at the within-class individual level and does not nullify the class-level claim.
 
 \paragraph{Target specificity.}
 Figure~\ref{fig:axis4_spec} shows the $\Delta M$ effect.
 The dominant causal effect is on $\Delta W$.
-$\Delta M$ coupling is comparatively small at low and high $\varepsilon$.
+The $\Delta M$ gap is small and consistent with the ceiling-effect picture:
+$d_c=4$ sites in the ordered phase are energetically isolated minority
+spins; eliminating them simultaneously simplifies both walls and local
+magnetisation, but the dominant signal is on $\Delta W$ because the
+intervention is designed around $\delta W_i < 0$ transitions.
+Any residual $\Delta M$ effect at intermediate $\varepsilon$ is a secondary
+consequence of the same structural targeting, not an independent causal
+channel.
 We do not claim $\Delta M$ is strictly null across all $\varepsilon$;
 we claim the intervention is primarily directed at domain-wall evolution,
 consistent with its design.
@@ -530,15 +553,20 @@ information and cannot be used as a generator-level causal handle.
 differ entirely in their causal leverage within the same system at the
 same temperature.}
 
-Two caveats.
+Three caveats.
 First, this does not mean coarse descriptions are generally better:
 $[W_0, B_\mathrm{mag}]$ is predictively sufficient for $\Delta W$ on a
-statistical forecasting task, but it does not identify the specific sites
-that drive coarsening.
-The fine structure does identify those sites, and that is precisely what
+statistical forecasting task, but it does not identify the structural
+class of sites ($d_c=4$) that drives coarsening.
+The fine structure identifies that class, and that is precisely what
 enables the generator-level intervention of Axis~4.
 Second, the dissociation is a property of this specific predictor-target
 pair at this temperature; it may not hold for other pairs.
+Third, the causal claim is class-level, not individual-level: the
+direction-dominance result (Section~\ref{sec:causal_protocol}) shows that
+within the $d_c=4$ class, individual site identity is inert; whether
+class-level targeting ($d_c=4$ versus random sites) is itself necessary
+remains an open question not addressed here.
 
 \subsection{Synthesis}
 
@@ -632,39 +660,43 @@ $E_{\geq 3}+J$ achieve statistically indistinguishable out-of-sample
 $R^2$ for $\Delta W$ (gap CI includes zero).
 Yet only $E_{\geq 3}+J$---or more precisely, the exposed-site geometry
 it encodes---can be used to construct a direction-specific causal
-handle: the generator bias of Axis~4 acts on locally identified
-exposed sites, which $[W_0, B_{\rm mag}]$ does not resolve.
+handle: the generator bias of Axis~4 acts on the locally identified
+$d_c=4$ structural class, which $[W_0, B_{\rm mag}]$ does not resolve.
 The two descriptions encode complementary information:
 $W_0$ summarises \emph{how much} coarsening will occur on average
 (aggregate potential), while exposed-site geometry identifies
-\emph{where} the next coarsening events will occur
-(structural localisation).
+\emph{where} the structurally relevant class of sites is located
+(class-level localisation).
 Equal predictive power masks a qualitative difference in causal
 accessibility.
 
+Importantly, the causal leverage demonstrated here is class-level:
+the intervention is conditioned on membership in the $d_c=4$ class, and
+the direction-dominance result (Section~\ref{sec:causal_protocol}) shows
+that individual site identity within that class is inert.
+The fine description $E_{\geq 3}+J$ is necessary for class identification,
+not for within-class individualisation.
 A scientist selecting an intervention target based on predictive accuracy
-alone could not distinguish between these two descriptions---and would
-lose the ability to perform the direction-specific control demonstrated
-in Axis~4.
+alone could not identify the $d_c=4$ class and would lose the ability
+to perform the direction-specific control demonstrated in Axis~4.
 
 \subsection{Cross-system comparison}
 
 The distinction between site-selection and flip-direction causal leverage
-is not universal.
-In a companion cellular-automaton (CA) study, site-selection
-\emph{anti-alignment}---biasing transitions \emph{away} from the
-structure-predicted target---produced a consistent effect across all
-12 tested conditions, indicating that site identity is the operative
-causal handle in that system.
-The Ising and CA results are therefore qualitatively different:
+may not be universal.
+In a preliminary companion cellular-automaton (CA) study (to be reported
+separately), site-selection \emph{anti-alignment}---biasing transitions
+\emph{away} from the structure-predicted target---produced a consistent
+effect across all 12 tested conditions, suggesting that site identity
+may be the operative causal handle in that system.
+If confirmed, the Ising and CA results would be qualitatively different:
 in Ising, causal power is direction-dominated because exposed sites are
-already near the flip-probability ceiling; in the CA, causal power is
-site-selection dominated because site identity determines transition
+already near the flip-probability ceiling; in the CA, causal power would
+be site-selection dominated because site identity determines transition
 eligibility in a way that is not saturated.
-These two systems provide an empirical contrast suggesting that the
-dominant form of causal leverage---site-structural identity versus
-transition direction---varies with the dynamical regime and the degree
-to which flip probabilities are already saturated by the base dynamics.
+We flag this contrast as a suggestive preliminary finding, not a
+confirmed cross-system result; independent replication and fuller
+reporting are needed before strong conclusions can be drawn.
 
 \subsection{Limitations and extensions}
 
@@ -678,6 +710,24 @@ geometrically special objects under multi-state spins.
 Extension to quantum systems (Bose-Hubbard chain) and continuous-field
 systems (XY, $\phi^4$) requires adapting the exposed-defect concept; these
 are open directions.
+
+Three specific gaps in the present study should be addressed in future work.
+First, only two temperatures are tested ($T=\IsingTOrd$ and $T=\IsingTDis$),
+one on each side of $T_c \approx 2.269$.
+The crossover structure near criticality is unresolved; a third temperature
+near $T_c$ (e.g.\ $T \approx 2.20$) would determine whether the fine
+advantage degrades smoothly or abruptly and would strengthen the crossover
+claim.
+Second, all results use a fixed horizon $K=\IsingK$ sweeps.
+Horizon sensitivity ($K \in \{10, 50\}$) is untested; as the characteristic
+coarsening timescale varies with temperature, $K=20$ may correspond to
+qualitatively different phases of evolution at the two anchor temperatures.
+Third, the class-level causal claim---that $d_c=4$ site targeting is
+necessary---is assumed, not tested.
+A direct comparison of $d_c=4$-targeted arms against random-site-targeted
+arms at the same $\varepsilon$ would determine whether the structural class
+itself is causally privileged or whether direction alone suffices regardless
+of which sites are targeted.
 
 %-----------------------------------------------------------------------
 \section{Conclusion}
