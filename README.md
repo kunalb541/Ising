@@ -15,11 +15,11 @@ Five results are reported:
 
 | Axis | Description | Key result |
 |------|-------------|------------|
-| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats coarse rival $\phi_\text{var8}$: $\Delta R^2 = +0.356$, 95% CI $[+0.331, +0.382]$ |
-| **2** | Regime crossover | Fine-over-coarse advantage reverses sign: $+0.173$ ordered, $-0.050$ disordered |
-| **3** | Target specificity | $\Delta W$ is the most fine-specifically favoured target: $\Delta R^2 = +0.355$ |
+| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats coarse rival $\phi_\text{var8}$: $\Delta R^2 = +0.393$, 95% CI $[+0.368, +0.421]$ |
+| **2** | Regime crossover | Fine-over-coarse advantage reverses sign: $+0.178$ ordered, $-0.071$ disordered |
+| **3** | Target specificity | $\Delta W$ is the most fine-specifically favoured target: $\Delta R^2 = +0.391$ |
 | **4** | Direction-specific causal control | Structure-aligned generator bias produces 4/4 sign-flip on future $\Delta W$ |
-| **D** | Predictor–handle dissociation | Best predictor $[W_0, B_\text{mag}]$ ($R^2 = 0.375$) differs from best causal handle $E$ ($R^2 = 0.173$); gap $= 0.203$ |
+| **D** | Predictor–handle dissociation | $[W_0, B_\text{mag}]$ ($R^2 = 0.389$) and $E_{\geq 3}+J$ ($R^2 \approx 0.393$) are statistically indistinguishable as predictors ($\Delta R^2 = 0.004$, CI includes zero), yet only the fine structure serves as a causal handle |
 
 ---
 
@@ -75,7 +75,7 @@ ising/
 - Generates all 6 figures and 3 CSV tables
 - Writes `outputs/data/paper_macros.tex` and `paper_values.json` with all paper numbers
 
-**`ising_c2_redesigned.py`** is a standalone supplementary probe. It compares E-targeted, random-targeted, and wall-density-targeted causal interventions at matched perturbation budget. Outputs go to `outputs/ising_c2_redesigned/`. This analysis does not appear in the paper.
+**`ising_c2_redesigned.py`** is a standalone supplementary probe ($N=2000$). It tests whether site-selection alignment matters by comparing a site-selection aligned arm against a site-selection anti-aligned arm at matched perturbation budget. No CI-supported site-selection advantage was found at any $\varepsilon$; the causal leverage is direction-dominated (discussed in the paper, Axis 4). Outputs go to `outputs/ising_c2_redesigned/`.
 
 **Axis naming:** The code uses internal names that differ from paper labels:
 
@@ -91,7 +91,7 @@ ising/
 
 ## Causal protocol (Axis 4 / paper Axis B)
 
-The causal experiment modifies the Glauber transition kernel throughout the $K$-step evolution. At sites identified as exposed ($d_c = 4$) at $t_0$ (mask fixed, not dynamically updated), the local wall-change contribution of flipping is:
+The causal experiment modifies the Glauber transition kernel throughout the $K$-step evolution. Exposed sites ($d_c = 4$) are identified **dynamically at each sweep** from the current spin state (not from a mask fixed at $t_0$); this ensures structural targeting tracks the evolving configuration. The local wall-change contribution of flipping is:
 
 $$\delta W_i = \sum_{\langle j \rangle}\bigl[\mathbf{1}[\sigma_j \neq -\sigma_i] - \mathbf{1}[\sigma_j \neq \sigma_i]\bigr]$$
 
