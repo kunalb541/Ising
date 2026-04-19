@@ -15,7 +15,7 @@ Five results are reported:
 
 | Axis | Description | Key result |
 |------|-------------|------------|
-| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats coarse rival $\phi_\text{var8}$: $\Delta R^2 = +0.393$, 95% CI $[+0.368, +0.421]$ |
+| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats $\phi_\text{var8}$ (near-null baseline, $R^2\approx 0$): $\Delta R^2 = +0.393$, 95% CI $[+0.368, +0.421]$; against stronger rival $[W_0, B_\text{mag}]$, gap = $0.004$ (CI includes zero) |
 | **2** | Regime crossover | Fine-over-coarse advantage reverses sign: $+0.178$ ordered, $-0.071$ disordered |
 | **3** | Target specificity | $\Delta W$ is the most fine-specifically favoured target: $\Delta R^2 = +0.391$ |
 | **4** | Direction-specific causal control | Structure-aligned generator bias produces 4/4 sign-flip on future $\Delta W$ |
