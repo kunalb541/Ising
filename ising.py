@@ -457,6 +457,76 @@ def run_random_targeted(spins, beta, eps, rho, n):
         random_targeted_sweep(spins, beta, eps, rho)
 
 
+@njit(cache=False)
+def random_filtered_sweep(spins, beta, eps, rho, dc_filter):
+    """
+    Filtered random-site control for mechanism decomposition.
+    Selects sites with prob rho per sweep (same as full random arm), then
+    applies directional bias only to those passing the d_c filter:
+      dc_filter == 0  : only d_c=0 sites (sh==4) — bulk-suppression mechanism
+      dc_filter == 3  : only d_c>=3 sites (sh<=-2) — exposed-class mechanism
+    """
+    L2 = spins.shape[0]
+    for parity in range(2):
+        for i in range(L2):
+            im1 = i-1 if i > 0 else L2-1; ip1 = i+1 if i < L2-1 else 0
+            start = parity if (i % 2 == 0) else 1 - parity
+            for j in range(start, L2, 2):
+                jm1 = j-1 if j > 0 else L2-1; jp1 = j+1 if j < L2-1 else 0
+                s = spins[i, j]
+                h = (spins[im1,j] + spins[ip1,j] + spins[i,jm1] + spins[i,jp1])
+                p = 1.0 / (1.0 + math.exp(beta * (2.0 * s * h)))
+                if eps > 0.0 and np.random.random() < rho:
+                    sh = s * h
+                    pass_filter = False
+                    if dc_filter == 0:
+                        pass_filter = (sh == 4)      # d_c = 0
+                    elif dc_filter == 3:
+                        pass_filter = (sh <= -2)     # d_c >= 3
+                    if pass_filter:
+                        if sh < 0:
+                            p = p + eps
+                            if p > 1.0: p = 1.0
+                        elif sh > 0:
+                            p = p - eps
+                            if p < 0.0: p = 0.0
+                if np.random.random() < p:
+                    spins[i, j] = -s
+
+
+@njit(cache=False)
+def run_random_filtered(spins, beta, eps, rho, dc_filter, n):
+    for _ in range(n):
+        random_filtered_sweep(spins, beta, eps, rho, dc_filter)
+
+
+@njit(cache=False)
+def mean_pflip_dc4(spins, beta):
+    """
+    Average baseline Glauber flip probability at d_c=4 sites.
+    Used to compute eps_eff = (1 - p_flip_dc4) for the structural arm
+    (since aligned promotion p -> p + eps is clipped at p=1).
+    Returns NaN if no d_c=4 sites exist.
+    """
+    L2 = spins.shape[0]
+    total_p = 0.0
+    n_dc4 = 0
+    for i in range(L2):
+        im1 = i-1 if i > 0 else L2-1; ip1 = i+1 if i < L2-1 else 0
+        for j in range(L2):
+            jm1 = j-1 if j > 0 else L2-1; jp1 = j+1 if j < L2-1 else 0
+            s = spins[i, j]
+            h = (spins[im1,j] + spins[ip1,j] + spins[i,jm1] + spins[i,jp1])
+            sh = s * h
+            if sh == -4:  # d_c = 4
+                p = 1.0 / (1.0 + math.exp(beta * (2.0 * sh)))
+                total_p += p
+                n_dc4 += 1
+    if n_dc4 == 0:
+        return -1.0
+    return total_p / n_dc4
+
+
 # =============================================================================
 # 7. WARMUP
 # =============================================================================
@@ -475,6 +545,11 @@ def warmup():
     run_aligned(d,0.5,0.05,True,1); run_aligned(d,0.5,0.05,False,1)
     random_targeted_sweep(d,0.5,0.05,0.1)
     run_random_targeted(d,0.5,0.05,0.1,1)
+    random_filtered_sweep(d,0.5,0.05,0.1,0)
+    random_filtered_sweep(d,0.5,0.05,0.1,3)
+    run_random_filtered(d,0.5,0.05,0.1,0,1)
+    run_random_filtered(d,0.5,0.05,0.1,3,1)
+    mean_pflip_dc4(d, 0.5)
     log("warmup OK")
 
 
@@ -573,6 +648,77 @@ def sim_pred_world_param(args):
     }
     fut = sp0.copy(); run_glauber(fut, beta, K_p); W1 = wall_count(fut)
     return feats, {'dW': W1 - W0}
+
+
+def sim_causal_world_param(args):
+    """
+    Parameterized causal world: same protocol as sim_causal_world but at arbitrary beta.
+    Returns 6 columns identical to sim_causal_world: [aligned_dW, misaligned_dW,
+    aligned_dM, misaligned_dM, random_dW, random_dM].
+    """
+    seed, eps_list, beta_p, equil_p = args
+    np.random.seed(seed)
+    numba_seed(seed)
+    spins = np.random.choice(np.array([-1,1], dtype=np.int8), size=(L,L))
+    run_glauber(spins, beta_p, equil_p)
+    sp0 = spins.copy(); W0 = wall_count(sp0); M0 = abs_mag(sp0)
+    E0 = count_E(sp0)
+    rho = float(E0) / float(L * L)
+
+    base = sp0.copy(); run_glauber(base, beta_p, K)
+    base_dW = wall_count(base) - W0; base_dM = abs_mag(base) - M0
+
+    results = np.zeros((len(eps_list), 6), dtype=np.float64)
+    for ei, eps in enumerate(eps_list):
+        al = sp0.copy(); run_aligned(al, beta_p, float(eps), True, K)
+        al_dW = wall_count(al) - W0; al_dM = abs_mag(al) - M0
+
+        mis = sp0.copy(); run_aligned(mis, beta_p, float(eps), False, K)
+        mis_dW = wall_count(mis) - W0; mis_dM = abs_mag(mis) - M0
+
+        rnd = sp0.copy(); run_random_targeted(rnd, beta_p, float(eps), rho, K)
+        rnd_dW = wall_count(rnd) - W0; rnd_dM = abs_mag(rnd) - M0
+
+        results[ei,0] = base_dW - al_dW
+        results[ei,1] = base_dW - mis_dW
+        results[ei,2] = base_dM - al_dM
+        results[ei,3] = base_dM - mis_dM
+        results[ei,4] = base_dW - rnd_dW
+        results[ei,5] = base_dM - rnd_dM
+    return results
+
+
+def sim_causal_filter_world(args):
+    """
+    Filtered random-site control for mechanism decomposition (eps=0.10 only).
+    Tests whether the random-arm gap comes from d_c=0 sites (bulk-suppression
+    hypothesis) or from d_c>=3 sites (exposed-class hypothesis).
+    Same selection rate rho = E0/L^2 as the full random arm; the filter
+    restricts WHICH selected sites get the directional bias.
+    Returns: [dc0_only_dW_gap, dcge3_only_dW_gap, baseline_dW, full_random_dW_gap]
+    """
+    seed, eps_test = args
+    np.random.seed(seed)
+    numba_seed(seed)
+    spins = np.random.choice(np.array([-1,1], dtype=np.int8), size=(L,L))
+    run_glauber(spins, BETA_ORD, EQUIL)
+    sp0 = spins.copy(); W0 = wall_count(sp0)
+    E0 = count_E(sp0)
+    rho = float(E0) / float(L * L)
+
+    base = sp0.copy(); run_glauber(base, BETA_ORD, K)
+    base_dW = wall_count(base) - W0
+
+    dc0 = sp0.copy(); run_random_filtered(dc0, BETA_ORD, float(eps_test), rho, 0, K)
+    dc0_dW = wall_count(dc0) - W0
+
+    dcge3 = sp0.copy(); run_random_filtered(dcge3, BETA_ORD, float(eps_test), rho, 3, K)
+    dcge3_dW = wall_count(dcge3) - W0
+
+    full = sp0.copy(); run_random_targeted(full, BETA_ORD, float(eps_test), rho, K)
+    full_dW = wall_count(full) - W0
+
+    return np.array([base_dW - dc0_dW, base_dW - dcge3_dW, base_dW, base_dW - full_dW])
 
 
 # =============================================================================
@@ -898,7 +1044,17 @@ def save_outputs(org_results, tgt_results, causal_arr,
                  rand_gap_10=(float('nan'),float('nan'),float('nan')),
                  dr2_crit=None, T_CRIT=2.20,
                  fss_results=None, mean_E_64=float('nan'),
-                 hor_results=None):
+                 hor_results=None,
+                 filt_dc0=(float('nan'),float('nan'),float('nan')),
+                 filt_dcge3=(float('nan'),float('nan'),float('nan')),
+                 filt_full=(float('nan'),float('nan'),float('nan')),
+                 mean_pflip_dc4=float('nan'), eps_eff_max=float('nan'),
+                 causal_dis_eps10_al=(float('nan'),float('nan'),float('nan')),
+                 causal_dis_eps10_mi=(float('nan'),float('nan'),float('nan')),
+                 causal_dis_eps10_rn=(float('nan'),float('nan'),float('nan')),
+                 causal_dis_n_flip=0, causal_dis_n_eps=0,
+                 crossover_results=None,
+                 r2_ood=float('nan'), r2_indomain=float('nan')):
 
     # tables
     save_csv(pd.DataFrame(org_results), TABS/"axis1_organisms.csv")
@@ -1020,6 +1176,38 @@ def save_outputs(org_results, tgt_results, causal_arr,
         cmd("HorKFiftyDRhi",tf(float(hor_results[50]['hi'])  if hor_results else float('nan'))),
         # Ridge penalty
         cmd("RidgeAlpha",   tf(float(ALPHA),1)),
+        # Random-arm filter decomposition (mechanism test)
+        cmd("FiltDcZero",   tf(float(filt_dc0[0]),2)),
+        cmd("FiltDcZeroLo", tf(float(filt_dc0[1]),2)),
+        cmd("FiltDcZeroHi", tf(float(filt_dc0[2]),2)),
+        cmd("FiltDcGeThree",   tf(float(filt_dcge3[0]),2)),
+        cmd("FiltDcGeThreeLo", tf(float(filt_dcge3[1]),2)),
+        cmd("FiltDcGeThreeHi", tf(float(filt_dcge3[2]),2)),
+        cmd("FiltFull",     tf(float(filt_full[0]),2)),
+        cmd("FiltFullLo",   tf(float(filt_full[1]),2)),
+        cmd("FiltFullHi",   tf(float(filt_full[2]),2)),
+        # eps_eff ceiling for structural arm
+        cmd("MeanPflipDcFour", tf(float(mean_pflip_dc4),3)),
+        cmd("EpsEffMax",       tf(float(eps_eff_max),4)),
+        # Causal at T=2.50 (disordered phase)
+        cmd("CausalDisAlignedTen",  tf(float(causal_dis_eps10_al[0]),2)),
+        cmd("CausalDisMisalnTen",   tf(float(causal_dis_eps10_mi[0]),2)),
+        cmd("CausalDisRandTen",     tf(float(causal_dis_eps10_rn[0]),2)),
+        cmd("CausalDisAlignedTenLo", tf(float(causal_dis_eps10_al[1]),2)),
+        cmd("CausalDisAlignedTenHi", tf(float(causal_dis_eps10_al[2]),2)),
+        cmd("CausalDisMisalnTenLo",  tf(float(causal_dis_eps10_mi[1]),2)),
+        cmd("CausalDisMisalnTenHi",  tf(float(causal_dis_eps10_mi[2]),2)),
+        cmd("CausalDisSignFlips", f"{int(causal_dis_n_flip)}/{int(causal_dis_n_eps)}"),
+        # Crossover fill-in (T=2.0 and T=2.35)
+        cmd("CrossTwoZeroDR",   tf(float(crossover_results[2.00]['dr2']) if crossover_results else float('nan'))),
+        cmd("CrossTwoZeroLo",   tf(float(crossover_results[2.00]['lo'])  if crossover_results else float('nan'))),
+        cmd("CrossTwoZeroHi",   tf(float(crossover_results[2.00]['hi'])  if crossover_results else float('nan'))),
+        cmd("CrossTwoThirtyFiveDR", tf(float(crossover_results[2.35]['dr2']) if crossover_results else float('nan'))),
+        cmd("CrossTwoThirtyFiveLo", tf(float(crossover_results[2.35]['lo'])  if crossover_results else float('nan'))),
+        cmd("CrossTwoThirtyFiveHi", tf(float(crossover_results[2.35]['hi'])  if crossover_results else float('nan'))),
+        # Cross-lattice weight transfer (train L=64, apply at L=128)
+        cmd("TransferCrossR",    tf(float(r2_ood),3)),
+        cmd("TransferInSampleR", tf(float(r2_indomain),3)),
     ]
     with open(DATA/"paper_macros.tex","w") as f: f.writelines(lines)
     log("  tables + JSON + macros saved")
@@ -1194,7 +1382,7 @@ def main():
     # SUB-EXPERIMENT A: Near-critical temperature T=2.20
     # -------------------------------------------------------------------------
     T_CRIT = 2.20; BETA_CRIT = 1.0/T_CRIT
-    N_CRIT = max(1000, N_PRED//3); EQUIL_CRIT = 2000  # longer equilibration near Tc
+    N_CRIT = N_PRED; EQUIL_CRIT = 2000  # full N for tight CI, longer equilibration near Tc
     log(f"\n--- Sub-experiment: near-Tc crossover at T={T_CRIT} (N={N_CRIT}, EQUIL={EQUIL_CRIT}) ---")
     out_crit=run_parallel(sim_pred_world_param,
                           [(SEED+30000+s,BETA_CRIT,L,K,EQUIL_CRIT) for s in range(N_CRIT)],
@@ -1254,6 +1442,145 @@ def main():
     # K=20 reference from best_org champion (same statistic)
     log(f"  K=20 (main): ΔR²={max(org_results,key=lambda r:r['dr2'])['dr2']:+.4f}")
 
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT D: Filter decomposition of random-site arm (eps=0.10)
+    # Tests bulk-suppression hypothesis: at T=1.80 most random sites have d_c=0,
+    # so "aligned" logic SUPPRESSES their flips. If random-arm gap is dominated
+    # by d_c=0 subset, that confirms the bulk-suppression mechanism.
+    # -------------------------------------------------------------------------
+    N_FILT = min(N_CAUSAL, 1500)
+    EPS_TEST = 0.10
+    log(f"\n--- Sub-experiment: random-arm decomposition by d_c (N={N_FILT}, eps={EPS_TEST}) ---")
+    log("  Test: which sites drive the random-arm gap?")
+    log("    d_c=0 only filter: keeps the bulk-suppression mechanism")
+    log("    d_c>=3 only filter: keeps the exposed-class subset")
+    out_filt = run_parallel(sim_causal_filter_world,
+                            [(SEED+60000+s, EPS_TEST) for s in range(N_FILT)], "filter")
+    filt_arr = np.array(out_filt)  # (N, 4): [dc0_gap, dcge3_gap, base_dW, full_random_gap]
+    dc0_m, dc0_lo, dc0_hi = mci(filt_arr[:,0], seed=601)
+    dcge3_m, dcge3_lo, dcge3_hi = mci(filt_arr[:,1], seed=602)
+    full_m, full_lo, full_hi = mci(filt_arr[:,3], seed=603)
+    log(f"  d_c=0 only:    gap = {dc0_m:+.3f} [{dc0_lo:+.3f}, {dc0_hi:+.3f}]")
+    log(f"  d_c>=3 only:   gap = {dcge3_m:+.3f} [{dcge3_lo:+.3f}, {dcge3_hi:+.3f}]")
+    log(f"  full random:   gap = {full_m:+.3f} [{full_lo:+.3f}, {full_hi:+.3f}]  (this run)")
+    if abs(full_m) > 1e-6:
+        log(f"  d_c=0 share of full-random gap: {dc0_m/full_m:.2%}")
+        log(f"  d_c>=3 share of full-random gap: {dcge3_m/full_m:.2%}")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT E: Structural-arm eps_eff (ceiling effect)
+    # Computes mean baseline P_flip at d_c=4 sites; eps_eff = 1 - <P_flip>.
+    # -------------------------------------------------------------------------
+    log(f"\n--- Sub-experiment: structural-arm eps_eff (ceiling effect) ---")
+    np.random.seed(SEED + 70000)
+    p_flips = []
+    n_subset = min(500, N_PRED)
+    for s in range(n_subset):
+        np.random.seed(SEED + 70000 + s); numba_seed(SEED + 70000 + s)
+        spins = np.random.choice(np.array([-1,1], dtype=np.int8), size=(L,L))
+        run_glauber(spins, BETA_ORD, EQUIL)
+        pp = mean_pflip_dc4(spins, BETA_ORD)
+        if pp > 0:
+            p_flips.append(pp)
+    mean_pflip = float(np.mean(p_flips)) if p_flips else float('nan')
+    eps_eff_max = 1.0 - mean_pflip
+    log(f"  Baseline P_flip at d_c=4 (T={T_ORD}): {mean_pflip:.4f}  (n_samples={len(p_flips)})")
+    log(f"  Max effective epsilon (structural arm, ceiling): {eps_eff_max:.4f}")
+    log(f"  Nominal eps=0.10 → eps_eff ~ {min(0.10, eps_eff_max):.4f} at d_c=4 sites")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT F: Causal experiment at T=2.50 (disordered phase)
+    # Tests whether direction-specific causal sign-flip survives into the
+    # disordered phase (where E predictively reverses sign).
+    # -------------------------------------------------------------------------
+    N_CAUS_DIS = min(N_CAUSAL, 1500)
+    log(f"\n--- Sub-experiment: causal protocol at T={T_DIS} (N={N_CAUS_DIS}) ---")
+    out_cdis = run_parallel(sim_causal_world_param,
+                            [(SEED+80000+s, EPS_LIST, BETA_DIS, EQUIL)
+                             for s in range(N_CAUS_DIS)], "causal-dis")
+    causal_dis_arr = np.array(out_cdis)
+    log("  eps   | aligned dW             | misaligned dW          | random-aligned dW       | sign_flip")
+    log("  " + "-"*110)
+    n_flip_dis = 0; n_eps_dis = 0
+    cd_al10_m = float('nan'); cd_mi10_m = float('nan'); cd_rn10_m = float('nan')
+    cd_al10_lo = cd_al10_hi = cd_mi10_lo = cd_mi10_hi = float('nan')
+    cd_rn10_lo = cd_rn10_hi = float('nan')
+    for ei, eps in enumerate(EPS_LIST):
+        al_m, al_lo, al_hi = mci(causal_dis_arr[:,ei,0], seed=ei*10+701)
+        mi_m, mi_lo, mi_hi = mci(causal_dis_arr[:,ei,1], seed=ei*10+702)
+        rn_m, rn_lo, rn_hi = mci(causal_dis_arr[:,ei,4], seed=ei*10+703)
+        flip = (al_lo > 0) and (mi_hi < 0)
+        if eps > 0:
+            n_eps_dis += 1
+            if flip: n_flip_dis += 1
+        log(f"  {eps:.2f}  | {al_m:+.3f} [{al_lo:+.3f},{al_hi:+.3f}] | "
+            f"{mi_m:+.3f} [{mi_lo:+.3f},{mi_hi:+.3f}] | "
+            f"{rn_m:+.3f} [{rn_lo:+.3f},{rn_hi:+.3f}] | "
+            f"{'PASS' if flip else 'FAIL':>9}")
+        if abs(eps - 0.10) < 1e-9:
+            cd_al10_m, cd_al10_lo, cd_al10_hi = al_m, al_lo, al_hi
+            cd_mi10_m, cd_mi10_lo, cd_mi10_hi = mi_m, mi_lo, mi_hi
+            cd_rn10_m, cd_rn10_lo, cd_rn10_hi = rn_m, rn_lo, rn_hi
+    log(f"  T={T_DIS} sign-flip count: {n_flip_dis}/{n_eps_dis}")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT G: Crossover fill-in (T=2.0 and T=2.35)
+    # -------------------------------------------------------------------------
+    N_CROSS = max(1000, N_PRED//3)
+    crossover_results = {}
+    log(f"\n--- Sub-experiment: crossover fill-in T in [2.0, 2.35] (N={N_CROSS}) ---")
+    for T_x in [2.00, 2.35]:
+        beta_x = 1.0 / T_x
+        equil_x = 2000 if T_x >= 2.20 else EQUIL
+        out_x = run_parallel(sim_pred_world_param,
+                             [(SEED+31000+int(T_x*100)*1000+s, beta_x, L, K, equil_x)
+                              for s in range(N_CROSS)], f"T={T_x}")
+        feats_x = [r[0] for r in out_x]; tgts_x = [r[1] for r in out_x]
+        dW_x = np.array([t['dW'] for t in tgts_x])
+        XE_x = np.array([f['E'] for f in feats_x]).reshape(-1,1)
+        Xphi_x = np.array([f['phi8'] for f in feats_x]).reshape(-1,1)
+        dr2_x = dr2_boot(XE_x, Xphi_x, dW_x, nb=N_BOOT//3, seed=int(T_x*100))
+        crossover_results[T_x] = {'dr2': dr2_x[0], 'lo': dr2_x[1], 'hi': dr2_x[2]}
+        log(f"  T={T_x:.2f}: ΔR²(E vs phi8)={dr2_x[0]:+.4f}  CI=[{dr2_x[1]:+.4f},{dr2_x[2]:+.4f}]")
+    log(f"  Full crossover: T=1.80: {dr2_ord[0]:+.3f} | T=2.00: {crossover_results[2.00]['dr2']:+.3f} | "
+        f"T=2.20: {dr2_crit[0]:+.3f} | T=2.35: {crossover_results[2.35]['dr2']:+.3f} | T=2.50: {dr2_dis[0]:+.3f}")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT H: Out-of-distribution test (train L=64, predict L=128)
+    # Uses normalized per-site descriptors and dW/(W0+1e-6) target so the
+    # mapping is dimensionless and L-independent.
+    # -------------------------------------------------------------------------
+    log(f"\n--- Sub-experiment: OOD generalization (train L=64 → predict L=128) ---")
+    # Recompute L=128 features (we already have feats_fss-like data only via fss path)
+    # For OOD we need feats matching L=128; reuse the most recent fss run by re-querying.
+    # Easier: rerun a small L=128 batch dedicated to OOD.
+    N_OOD = 500
+    out_ood = run_parallel(sim_pred_world_param,
+                           [(SEED+95000+s, BETA_ORD, 128, K, 2000) for s in range(N_OOD)], "L=128 OOD")
+    feats_ood = [r[0] for r in out_ood]; tgts_ood = [r[1] for r in out_ood]
+    L64sq = float(L*L); L128sq = 128.0*128.0
+    # Train features (L=64): normalize per-site, target = dW/(W0+1e-6)
+    Xtr = np.column_stack([
+        np.array([f['E_ge3'] for f in feats_o]) / L64sq,
+        np.array([f['J']     for f in feats_o]) / L64sq,
+    ])
+    ytr = np.array([t['dW'] for t in tgts_o]) / (np.array([f['W0'] for f in feats_o]) + 1e-6)
+    Xte = np.column_stack([
+        np.array([f['E_ge3'] for f in feats_ood]) / L128sq,
+        np.array([f['J']     for f in feats_ood]) / L128sq,
+    ])
+    yte = np.array([t['dW'] for t in tgts_ood]) / (np.array([f['W0'] for f in feats_ood]) + 1e-6)
+    # Fit Ridge on L=64, predict on L=128
+    from sklearn.linear_model import Ridge
+    rg = Ridge(alpha=ALPHA, fit_intercept=True).fit(Xtr, ytr)
+    yhat = rg.predict(Xte)
+    r2_ood = r2_oos(yte, yhat)
+    # In-domain reference (L=64 self-CV with same normalized target)
+    r2_indomain = ridge_cv(Xtr, ytr, seed=901)
+    log(f"  In-domain L=64 R² (normalized features, target dW/W0): {r2_indomain:.4f}")
+    log(f"  OOD L=64→L=128 R²:                                     {r2_ood:.4f}")
+    log(f"  Generalization retention: {r2_ood/max(r2_indomain,1e-6):.2%}")
+
     # figures
     log("\n--- Generating figures ---")
     np.random.seed(SEED+77)
@@ -1279,6 +1606,16 @@ def main():
         dr2_crit=dr2_crit, T_CRIT=T_CRIT,
         fss_results=fss_results, mean_E_64=mean_E_64,
         hor_results=hor_results,
+        filt_dc0=(dc0_m,dc0_lo,dc0_hi),
+        filt_dcge3=(dcge3_m,dcge3_lo,dcge3_hi),
+        filt_full=(full_m,full_lo,full_hi),
+        mean_pflip_dc4=mean_pflip, eps_eff_max=eps_eff_max,
+        causal_dis_eps10_al=(cd_al10_m,cd_al10_lo,cd_al10_hi),
+        causal_dis_eps10_mi=(cd_mi10_m,cd_mi10_lo,cd_mi10_hi),
+        causal_dis_eps10_rn=(cd_rn10_m,cd_rn10_lo,cd_rn10_hi),
+        causal_dis_n_flip=n_flip_dis, causal_dis_n_eps=n_eps_dis,
+        crossover_results=crossover_results,
+        r2_ood=r2_ood, r2_indomain=r2_indomain,
     )
 
     # final report

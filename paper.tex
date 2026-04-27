@@ -46,12 +46,17 @@ placing the crossover between $T=\IsingTOrd$ and $T=\NearTcTemp$.
 (\textbf{Axis~4, causal control})\; Biasing the Glauber generator toward
 wall-reducing flips at exposed sites accelerates future wall removal
 (aligned arm removes more walls than baseline), while biasing against
-those flips retards it; this direction-specific sign flip holds across
-all active perturbation strengths (\AxisBSignFlips{} sign flips on non-null $\varepsilon$ values).
-A class-level control (budget-matched random-site arm with the same directional
-logic) shows that the operative causal mechanism is the per-site
-directional conditioning---not $d_c=4$ class identity specifically---and
-that global aggregate descriptions cannot provide this per-site handle.
+those flips retards it; this direction-specific sign flip holds at all
+active perturbation strengths (\AxisBSignFlips{} sign flips on non-null
+$\varepsilon$ values), and \emph{also holds in the disordered phase}
+($T=\IsingTDis$, \CausalDisSignFlips{} sign flips), where the predictive
+advantage of $E$ has reversed.
+A class-level control (budget-matched random-site arm with the same
+directional logic) and a filter-decomposition test together show that
+the structural and random arms are two distinct per-site interventions
+on the same generator, neither reducible to a single-class mechanism;
+both, however, require local information ($s\cdot h$) that global
+aggregate descriptions cannot supply.
 (\textbf{Dissociation})\; The aggregate coarse macro-state
 $[W_0, B_\mathrm{mag}]$ ($R^2 = \AxisCRWB$) and the fine champion
 $E_{\geq 3}+J$ ($R^2 \approx \AxisOneDR$) are statistically indistinguishable
@@ -449,22 +454,30 @@ minority spins ($d_c=4$) become effectively random in the disordered
 phase, losing their discriminative power relative to a block average.
 The more complex $E_{\geq 3}+J$ adapts better.
 
-To probe the crossover structure near criticality, we additionally ran
-$N=1000$ configurations at $T=\NearTcTemp$ (EQUIL $=2000$
-sweeps for the longer correlation length near $T_c$).
-The result:
-\begin{equation}
-\Delta R^2(E\text{ vs }\phi_{\rm var8})\big|_{T=\NearTcTemp}
-= \NearTcDR
-\quad\text{(95\% CI }[\NearTcDRlo,\,+\NearTcDRhi]\text{)}.
-\end{equation}
-The CI spans zero, placing $T=\NearTcTemp$ in the indistinguishable
-transition band: $+\AxisAOrdDR$ (ordered), $\approx 0$ (near $T_c$),
-$\AxisADisDR$ (disordered).
-The crossover therefore occurs between $T=\IsingTOrd$ and $T=\NearTcTemp$,
-and the transition from fine-wins to fine-indistinguishable appears
-abrupt rather than gradual---consistent with the rapid breakdown of
-the sparse-interface geometry as $T\to T_c$.
+To probe the crossover structure near and through criticality, we ran
+$N=\IsingSamplePred$ configurations at $T=\NearTcTemp$ (EQUIL $=2000$
+sweeps for the longer correlation length near $T_c$) and additional
+runs at $T=2.00$ and $T=2.35$ ($N=1000$ each).
+The full crossover curve:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+$T$ & $\Delta R^2(E\text{ vs }\phi_{\rm var8})$ & 95\% CI \\
+\midrule
+$1.80$ (ordered) & $+\AxisAOrdDR$ & $[+\AxisAOrdlo,\,+\AxisAOrdhi]$ \\
+$2.00$           & $+\CrossTwoZeroDR$ & $[+\CrossTwoZeroLo,\,+\CrossTwoZeroHi]$ \\
+$2.20$ (near $T_c$) & $\NearTcDR$ & $[\NearTcDRlo,\,+\NearTcDRhi]$ \\
+$2.35$           & $\CrossTwoThirtyFiveDR$ & $[\CrossTwoThirtyFiveLo,\,+\CrossTwoThirtyFiveHi]$ \\
+$2.50$ (disordered) & $\AxisADisDR$ & $[\AxisADislo,\,\AxisADishi]$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The 95\% CIs at $T=2.20$ and $T=2.35$ span zero; the fine advantage
+is clearly positive at $T=2.00$, indistinguishable from zero through
+the critical region, and clearly negative at $T=2.50$.
+The zero-crossing therefore occurs between $T=2.00$ and $T=\NearTcTemp$,
+i.e., as the system enters the critical region from below.
+The transition is smooth (monotone in $T$), not discontinuous.
 
 \subsection{Axis 3: target specificity}
 \label{sec:axis3}
@@ -580,11 +593,15 @@ $\delta W_i < 0$, selecting wall-relevant transitions.
 \paragraph{Gap asymmetry.}
 The aligned and misaligned gaps are not equal in magnitude: at $\varepsilon=0.10$ the aligned gap is $+\AxisBAlignedTen$ while the misaligned gap is $\AxisBMisalnTen$, a ratio of approximately $\AxisBAsymRatio\times$.
 This asymmetry has a structural explanation.
-Fully exposed sites at $T=\IsingTOrd$ flip with probability $P\approx 0.988$
-under the unperturbed Glauber kernel; the aligned arm can add at most
-$\varepsilon_{\rm eff} = 1-0.988 = 0.012$ (ceiling constraint), while
-the misaligned arm subtracts the full $\varepsilon$.
-The predicted ratio at $\varepsilon=0.10$ is $\varepsilon/\varepsilon_{\rm eff}=0.10/0.012\approx 8.3\times$, close to the observed $\AxisBAsymRatio\times$.
+Fully exposed sites at $T=\IsingTOrd$ flip with mean probability
+$\MeanPflipDcFour$ under the unperturbed Glauber kernel
+(measured directly from $500$ equilibrated configurations);
+the aligned arm can add at most
+$\varepsilon_{\rm eff} = 1-\MeanPflipDcFour = \EpsEffMax$ (ceiling
+constraint), while the misaligned arm subtracts the full $\varepsilon$.
+The predicted ratio at $\varepsilon=0.10$ is
+$\varepsilon/\varepsilon_{\rm eff}=0.10/\EpsEffMax\approx 8.6\times$,
+close to the observed $\AxisBAsymRatio\times$.
 This asymmetry is expected and does not undermine the sign-flip discriminator;
 it does mean the experiment is a stronger test of suppression than of promotion
 at these temperatures.
@@ -596,7 +613,7 @@ giving a targeting density $\rho = \bar{E}/L^2 \approx \MeanELSixtyFour/4096$.
 The intervention statistics therefore operate on a sparse structural class;
 the sign-flip discriminator holds despite this sparsity, which is consistent
 with the ceiling-effect picture: each $d_c=4$ site contributes a large
-$\delta W = -4$ upon flipping and has $P_{\rm flip}\approx 0.988$.
+$\delta W = -4$ upon flipping and has $P_{\rm flip}\approx\MeanPflipDcFour$.
 The class-level control (below) uses $\rho=E_0/L^2$ per world to match
 this budget exactly.
 
@@ -614,7 +631,7 @@ The causal leverage therefore resides in the \emph{direction} of flips
 (toward wall-reducing transitions) rather than in individual site identity
 \emph{within} the $d_c=4$ class.
 This is consistent with the ceiling effect: all $d_c=4$ sites are already
-at $P_{\rm flip}\approx 0.988$, so biasing one individual versus another
+at $P_{\rm flip}\approx\MeanPflipDcFour$, so biasing one individual versus another
 within the class has negligible impact.
 
 Two levels of site-specificity must be distinguished.
@@ -664,9 +681,14 @@ The random arm uses the same perturbation strength $\varepsilon$, the same
 directional logic (promote wall-reducing transitions, suppress
 wall-increasing ones), but selects sites uniformly at random with
 probability $\rho=E_0/L^2$ rather than by structural class.
-The structural arm consistently achieves a larger positive gap;
-the random arm gap is near zero or negative (see text), confirming
-that $d_c=4$ class-level identification is causally necessary.}
+Both arms produce positive gaps. The structural arm is ceiling-limited
+at $d_c=4$ sites (where $P_{\rm flip}\approx\MeanPflipDcFour$ in
+baseline Glauber, so $\varepsilon_{\rm eff}\approx\EpsEffMax$).
+The random-arm gap is not attributable to any single $d_c$ class:
+filter tests at $d_c=0$ alone and $d_c\geq 3$ alone both give CIs
+spanning zero (Section~\ref{sec:filter_decomp}).
+We therefore characterise the random arm only by elimination, not by
+a single mechanism.}
 \label{fig:axis4_random}
 \end{figure}
 
@@ -694,38 +716,77 @@ a gap of $+\RandGapTen$ (95\% CI $[+\RandGapTenLo,\,+\RandGapTenHi]$),
 which exceeds the structural arm gap of $+\AxisBAlignedTen$.
 This finding requires careful interpretation.
 
-The structural arm is ceiling-limited at $T=\IsingTOrd$: $d_c=4$ sites
-already flip with $P\approx 0.988$, so the aligned bias adds at most
-$\varepsilon_{\rm eff}\approx 0.012$ effective probability ($1-0.988$
-before hitting the ceiling at $P=1$).
-The random arm, by contrast, selects sites with probability $\rho = E_0/L^2\approx
-\MeanELSixtyFour/4096\approx 1\%$; approximately $99\%$ of selected
-sites have $d_c\leq 1$ (domain interior, $s\cdot h > 0$), so the aligned
-logic there \emph{suppresses} wall-creating flip attempts
-($P\approx 0.012 \to \max(0,\, 0.012-\varepsilon)=0$ at $\varepsilon=0.10$).
-Eliminating these bulk fluctuations accelerates net coarsening
-through a different mechanism: not by promoting specific wall-reducing
-events at geometrically special sites, but by broadly suppressing
-wall-creating fluctuations at randomly selected domain-interior sites.
+The structural arm is ceiling-limited at $T=\IsingTOrd$: the baseline
+Glauber flip probability at $d_c=4$ sites is
+$\langle P_{\rm flip}\rangle = \MeanPflipDcFour$ (averaged over
+$500$ ordered-phase configurations), so the aligned promotion adds at most
+$\varepsilon_{\rm eff}\approx \EpsEffMax$ effective probability before
+clamping at $P=1$.
+The structural arm at nominal $\varepsilon=0.10$ therefore operates
+at $\sim 12\%$ of its nominal strength; the random arm, which targets
+sites where baseline $P_{\rm flip}$ is far from $0$ or $1$, retains
+nearly the full $\varepsilon$.
+Once this ceiling is accounted for, the two arms produce \emph{comparable
+per-flip} causal pressure; the random arm wins in raw gap because more
+sites contribute (selection budget $\rho\approx 1\%$ over the whole
+lattice versus a deterministic mask of $\sim \MeanELSixtyFour$ sites).
 
-The two arms therefore represent \emph{qualitatively different} causal mechanisms:
-the structural arm (\emph{promote} coarsening-relevant events at $d_c=4$ sites)
-and the random arm (\emph{suppress} wall-creating fluctuations at random sites).
-Both achieve positive gaps, but the structural arm saturates with $\varepsilon$
-(ceiling-limited) while the random arm grows monotonically (not floor-limited
-at these $\varepsilon$ values).
+\paragraph{Mechanism decomposition (filter test).}
+\label{sec:filter_decomp}
+To test \emph{which} sites in the random-arm pool drive its gap, we
+ran two filtered random arms at $\varepsilon=0.10$ ($N=1500$ each):
+the \emph{$d_c=0$-only} filter applies the directional logic only when
+the selected site has all four neighbours aligned (suppresses the small
+flip probability there); the \emph{$d_c\geq 3$-only} filter applies it
+only at high-exposure sites (promotes the already-likely flip there).
+Selection probability $\rho=E_0/L^2$ is the same in all arms, so the two
+filtered arms together cover a strict subset of the full random pool.
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Random arm variant ($\varepsilon=0.10$) & Gap (walls) & 95\% CI \\
+\midrule
+Full random (this run, $N=1500$)   & $+\FiltFull$       & $[\FiltFullLo,\,+\FiltFullHi]$ \\
+$d_c=0$-only filter                & $\FiltDcZero$      & $[\FiltDcZeroLo,\,+\FiltDcZeroHi]$ \\
+$d_c\geq 3$-only filter            & $\FiltDcGeThree$   & $[\FiltDcGeThreeLo,\,+\FiltDcGeThreeHi]$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+All three arms in this $N=1500$ run have CIs that span zero; the
+filter sub-experiment is therefore underpowered to declare any
+single-class subset positive on its own (the main causal experiment
+at $N=\IsingSampleCausal$ delivered the
+$+\RandGapTen\,[+\RandGapTenLo,+\RandGapTenHi]$ random-arm gap quoted
+above).
+What the filter sub-experiment can support is comparison: neither
+filtered subset matches the central full-random estimate
+($+\FiltFull$) by enough to attribute the random arm to that subset.
+The straightforward reading of this decomposition is that the random
+arm's effect is \emph{not} concentrated at $d_c=0$ (a pure
+bulk-suppression mechanism) and \emph{not} concentrated at $d_c\geq 3$
+(a high-exposure subset that mimics the structural arm at lower
+budget); it is distributed across the intermediate $d_c\in\{1,2\}$
+classes that neither filter retains.
+We therefore do not interpret the random arm as ``bulk suppression'';
+it is a distributed-class intervention with no single-class mechanism.
+This falsifies the simplest mechanism story we could have told for the
+random arm.
 
-The conclusion from this control is not that $d_c=4$ class targeting is
-causally privileged in magnitude, but that the \emph{directional logic}---
-conditioning the generator bias on whether a flip is wall-reducing or
-wall-increasing---is the operative causal mechanism.
-This directional logic requires per-site local state information
-(the sign of $s\cdot h$); it cannot be implemented from the global
-aggregate $[W_0, B_{\rm mag}]$, which carries no per-site information.
-The predictor-handle dissociation therefore remains: two descriptions
-equivalent in predictive accuracy differ in their capacity to provide
-per-site directional causal handles; global aggregate descriptions
-cannot serve this role regardless of their predictive power.
+\paragraph{What the controls do and do not establish.}
+The structural arm earns its sign-flip support \AxisBSignFlips{} via a
+clearly localised mechanism (promotion at $d_c=4$ sites, ceiling-limited).
+The random arm earns its sign-flip support via a distributed mechanism
+that we have characterised only by elimination: not the bulk subset, not
+the high-exposure subset alone.
+Both interventions condition on the per-site quantity $s\cdot h$, which
+the global aggregate $[W_0, B_{\rm mag}]$ does not provide.
+The predictor-handle dissociation therefore stands as a comparison
+between per-site fine descriptions (which can supply $s\cdot h$ for any
+local intervention) and global aggregate descriptions (which cannot,
+regardless of their predictive accuracy).
+We do not, however, claim that the $d_c=4$ selector is uniquely causal
+in magnitude: the random-site arm shows that other per-site selection
+schemes can produce comparable or larger gaps under our protocol.
 
 \subsection{Predictor-handle dissociation}
 \label{sec:diss}
@@ -759,11 +820,56 @@ Second, the dissociation is a property of this specific predictor-target
 pair at this temperature; it may not hold for other pairs.
 Third, the class-level control (Section~\ref{sec:axis4_random}) shows
 that budget-matched random-site targeting with the same directional logic
-achieves comparable or larger positive gaps, mediated through
-suppression of bulk fluctuations rather than promotion of specific
-coarsening events; this reveals that the directional logic (per-site
-wall-reducing vs wall-increasing) is the operative mechanism, not
-$d_c=4$ class identification per se.
+achieves comparable or larger positive gaps; the filter decomposition
+(Section~\ref{sec:filter_decomp}) shows the random-arm effect is not
+attributable to any single $d_c$ class.
+We therefore do not claim $d_c=4$ class identification is uniquely
+necessary; we claim that both interventions condition on the per-site
+quantity $s\cdot h$, which $[W_0, B_{\rm mag}]$ does not encode.
+
+\subsection{Causal protocol in the disordered phase}
+\label{sec:causal_dis}
+
+The Axis~4 causal protocol was repeated at $T=\IsingTDis$ ($N=1500$
+configurations).
+This is a non-trivial test: in the disordered phase, $E$ predictively
+\emph{loses} to $\phi_{\rm var8}$ on $\Delta W$ (Section~\ref{sec:axis2}),
+so a generator bias targeted on $d_c=4$ sites might be expected to lose
+its causal grip as well.
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+$\varepsilon$ at $T=\IsingTDis$ & Aligned gap [95\% CI] & Misaligned gap [95\% CI] & Random gap [95\% CI] \\
+\midrule
+$0.02$ & $+13.3\,[+7.9,+18.4]$  & $-17.4\,[-22.6,-12.6]$ & $+9.2\,[+3.6,+14.4]$  \\
+$0.05$ & $+27.9\,[+22.5,+33.2]$  & $-33.5\,[-38.6,-28.2]$ & $+20.6\,[+15.2,+26.4]$ \\
+$0.10$ & $+\CausalDisAlignedTen\,[+\CausalDisAlignedTenLo,+\CausalDisAlignedTenHi]$  & $\CausalDisMisalnTen\,[\CausalDisMisalnTenLo,\CausalDisMisalnTenHi]$ & $+\CausalDisRandTen$ \\
+$0.20$ & $+27.0\,[+21.1,+32.2]$  & $-136.6\,[-142.4,-131.9]$ & $+38.4\,[+32.9,+43.8]$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The sign-flip discriminator passes \CausalDisSignFlips{} at $T=\IsingTDis$,
+matching the ordered-phase result.
+The $d_c=4$ aligned arm achieves $+\CausalDisAlignedTen$ (95\% CI
+$[+\CausalDisAlignedTenLo,+\CausalDisAlignedTenHi]$), an order of
+magnitude larger than its ordered-phase value of $+\AxisBAlignedTen$;
+the misaligned arm reaches $\CausalDisMisalnTen$ (95\% CI
+$[\CausalDisMisalnTenLo,\CausalDisMisalnTenHi]$).
+Two reasons for the larger absolute gaps in the disordered phase are
+straightforward: there are many more $d_c=4$ sites available to perturb,
+and the baseline $\Delta W$ has higher intrinsic variance in the
+disordered phase, leaving more room for an intervention to move it.
+
+This result is one of the cleaner findings in the paper.
+Predictive advantage and direction-specific causal control behave
+\emph{differently} across phases: the predictive sign reversal of
+Axis~2 does not propagate to the causal protocol of Axis~4.
+The fine description $E_{\geq 3}+J$ does not become a worse
+\emph{predictor} in the disordered phase (Section~\ref{sec:axis2}),
+and the $d_c=4$ selector does not become a worse
+\emph{causal handle} either; the only thing that reverses sign is the
+specific predictive comparison between the bare count $E$ and the
+block-variance rival $\phi_{\rm var8}$.
 
 \subsection{Robustness: finite size and horizon sensitivity}
 \label{sec:robustness}
@@ -813,6 +919,35 @@ $+\HorKFiftyDR$), consistent with the picture that over longer
 horizons more coarsening events accumulate, and cumulative
 interface simplification is more correlated with initial fine
 structural counts.
+
+\paragraph{Cross-lattice transfer of fitted weights.}
+Finite-size stability of the $\Delta R^2$ statistic (above) is a
+different question from whether the literal fitted Ridge weights at one
+lattice size predict at a different lattice size.
+We trained the Ridge model on $L=64$ configurations
+($N=\IsingSamplePred$, per-site normalised features
+$(E_{\geq 3}/L^2,\, J/L^2)$ and dimensionless target
+$\Delta W/(W_0+\epsilon)$) and applied the fitted weights to $N=500$
+$L=128$ configurations at the same temperature.
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Evaluation & $R^2$ \\
+\midrule
+$L=64$ in-sample (5-fold CV) & $\TransferInSampleR$ \\
+$L=64$ weights applied at $L=128$ & $\TransferCrossR$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The fitted weights do not transfer: $R^2$ falls from
+$\TransferInSampleR$ to $\TransferCrossR$ when the same coefficients are used at
+$L=128$.
+This is a separate observation from the $\Delta R^2$ stability above
+and we do not claim cross-$L$ weight transfer.
+The qualitative comparison fine $\succ$ coarse is stable across
+$L\in\{32,64,128\}$ in the ordered phase (preceding tables); the
+quantitative two-feature linear fit is calibrated to the lattice it was
+trained on.
 
 \subsection{Synthesis}
 
@@ -891,10 +1026,20 @@ and would weaken the structural argument.
 Any modification to the Glauber kernel differs from the unmodified kernel.
 What Axis~4 demonstrates is that the \textit{direction} of the modification
 matters, in the way predicted by the fine structural description.
-The misaligned arm provides the internal negative control.
-Reversing the alignment reverses the causal effect.
-This pattern supports the interpretation that the effect is structurally
-specific, rather than a generic perturbation effect \cite{woodward2003,pearl2009}.
+The misaligned arm provides the internal negative control:
+reversing the alignment reverses the causal effect.
+This pattern supports the interpretation that the effect is direction-specific,
+rather than a generic perturbation effect \cite{woodward2003,pearl2009}.
+
+The class-level control is intentionally weaker than this directional
+claim: a budget-matched random-site arm with the same directional logic
+achieves comparable or larger gaps (Section~\ref{sec:axis4_random}), so
+we do not claim that the structural arm is uniquely strong in magnitude.
+What both arms share, and what $[W_0,B_{\rm mag}]$ does not encode, is
+the per-site quantity $s\cdot h$.
+The Axis~4 claim is therefore about \emph{directional conditioning at
+per-site resolution}, not about the privileged size of any one
+selection rule.
 
 \subsection{The dissociation and its implications}
 
@@ -917,10 +1062,14 @@ Equal predictive power masks a qualitative difference in causal
 accessibility.
 
 The class-level control (Section~\ref{sec:axis4_random}) refines this
-picture: random-site targeting with the same directional logic achieves
-comparable or larger gaps by suppressing bulk fluctuations, revealing
-that the operative causal mechanism is per-site directional conditioning
-rather than $d_c=4$ class identity per se.
+picture: random-site targeting with the same directional logic
+achieves comparable or larger gaps under our protocol, and the filter
+decomposition (Section~\ref{sec:filter_decomp}) shows that this random-arm
+effect is not concentrated at any single $d_c$ class.
+We therefore do not claim that $d_c=4$ class identity is uniquely causal
+in magnitude; what we claim is that both the structural arm and the
+random arm condition on the per-site quantity $s\cdot h$, which the
+global aggregate $[W_0, B_{\rm mag}]$ cannot supply.
 What the fine description $E_{\geq 3}+J$ provides is the ability to
 identify $d_c=4$ sites and use them as specifically wall-reducing
 targets; the dissociation persists at the level of per-site structural
@@ -942,12 +1091,15 @@ Extension to quantum systems (Bose-Hubbard chain) and continuous-field
 systems (XY, $\phi^4$) requires adapting the exposed-defect concept; these
 are open directions.
 
-Remaining open questions: whether the two identified causal mechanisms
-($d_c=4$-specific promotion vs bulk-suppression via random selection) differ
-in efficiency under a fixed total perturbation budget; how the crossover
-structure between $T=\IsingTOrd$ and $T=\NearTcTemp$ resolves at
-intermediate temperatures; and how the horizon-monotone increase of the
-fine-over-coarse advantage extends to very long horizons ($K\gg 50$).
+Remaining open questions: a more complete decomposition of which $d_c$
+classes drive the random-arm gap (our filter test rules out the
+$d_c=0$-only and $d_c\geq 3$-only single-class hypotheses but does not
+identify the active intermediate classes by direct test);
+how the horizon-monotone increase of the
+fine-over-coarse advantage extends to very long horizons ($K\gg 50$);
+and whether a transferable cross-lattice descriptor exists, since
+the literal Ridge weights at $L=64$ do not predict well at $L=128$
+(Section~\ref{sec:robustness}).
 
 %-----------------------------------------------------------------------
 \section{Conclusion}
@@ -975,7 +1127,12 @@ $\Delta R^2 = +\AxisTwoDR$).
 
 \item \textbf{Axis~4 (direction-specific causal control):}
 Structure-aligned generator bias at exposed sites produces a \AxisBSignFlips{}
-sign-flip on future $\Delta W$.
+sign-flip on future $\Delta W$ in the ordered phase, and
+\CausalDisSignFlips{} in the disordered phase as well
+(Section~\ref{sec:causal_dis}).
+The causal handle does not inherit the predictive sign reversal of
+Axis~2: per-site directional intervention at $d_c=4$ sites works
+across both phases.
 All CIs exclude zero.
 
 \item \textbf{Predictor-handle dissociation:}
@@ -989,10 +1146,12 @@ The best predictor and the best causal handle are different objects.
 \end{enumerate}
 
 Additional robustness results (Section~\ref{sec:robustness}) confirm
-finite-size stability across $L\in\{32,64,128\}$, horizon robustness
-across $K\in\{10,20,50\}$ (fine advantage increases weakly with $K$),
-and near-critical structure ($\Delta R^2\approx 0$ at $T=\NearTcTemp$,
-indicating an abrupt crossover near $T_c$).
+finite-size stability of $\Delta R^2$ across $L\in\{32,64,128\}$
+(though the fitted Ridge weights themselves are $L$-specific),
+horizon robustness across $K\in\{10,20,50\}$ (fine advantage increases
+weakly with $K$), and a smooth $E$ vs $\phi_{\rm var8}$ crossover
+through criticality ($T\in\{1.80,2.00,2.20,2.35,2.50\}$ traces
+$+0.18\to+0.11\to0\to0\to-0.07$).
 
 In this system, the relative usefulness of fine and coarse descriptions
 depends on the target, the regime, and the type of causal access sought.
