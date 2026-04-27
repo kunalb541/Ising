@@ -15,10 +15,10 @@ Five results are reported:
 
 | Axis | Description | Key result |
 |------|-------------|------------|
-| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats $\phi_\text{var8}$ (near-null baseline, $R^2\approx 0$): $\Delta R^2 = +0.393$, 95% CI $[+0.368, +0.421]$; against stronger rival $[W_0, B_\text{mag}]$, gap = $0.004$ (CI includes zero) |
-| **2** | Regime crossover | Fine-over-coarse advantage reverses sign: $+0.178$ ordered, $-0.071$ disordered |
-| **3** | Target specificity | $\Delta W$ is the most fine-specifically favoured target: $\Delta R^2 = +0.391$ |
-| **4** | Direction-specific causal control | Structure-aligned generator bias produces 4/4 sign-flip on future $\Delta W$ |
+| **1** | Organism comparison (ordered phase) | $E_{\geq 3}+J$ beats $\phi_\text{var8}$ (near-null baseline, $R^2\approx 0$): $\Delta R^2 = +0.391$, 95% CI $[+0.367, +0.418]$; against stronger rival $[W_0, B_\text{mag}]$, gap = $0.004$ (CI includes zero) |
+| **2** | Regime crossover | Fine-over-coarse advantage reverses sign: $+0.178$ ordered, $-0.071$ disordered; near-$T_c$ probe ($T=2.20$) shows $\Delta R^2 = -0.013$ (CI spans zero) |
+| **3** | Target specificity | $\Delta W$ is the most fine-specifically favoured target: $\Delta R^2 = +0.392$ |
+| **4** | Direction-specific causal control | Structure-aligned generator bias produces 4/4 sign-flip; random-site arm (+4.70) > structural arm (+2.69) at $\varepsilon=0.10$ — two mechanisms identified |
 | **D** | Predictor–handle dissociation | $[W_0, B_\text{mag}]$ ($R^2 = 0.389$) and $E_{\geq 3}+J$ ($R^2 \approx 0.393$) are statistically indistinguishable as predictors ($\Delta R^2 = 0.004$, CI includes zero), yet only the fine structure serves as a causal handle |
 
 ---
@@ -30,6 +30,7 @@ Five results are reported:
 - $T_\text{ordered} = 1.80$, $T_\text{disordered} = 2.50$ ($T_c \approx 2.269$)
 - 1000 equilibration sweeps from random initial state; $K=20$ step prediction horizon
 - 3000 independent samples for prediction experiments; 3000 for causal experiments
+- Sub-experiments: near-$T_c$ crossover ($T=2.20$, $N=1000$); finite-size ($L\in\{32,64,128\}$, $N=500$ each); horizon ($K\in\{10,20,50\}$, $N=500$ each)
 
 ---
 
@@ -53,7 +54,7 @@ Five results are reported:
 
 ```
 ising/
-├── ising.py                    # Main simulation: Axes 1-4 + Dissociation
+├── ising.py                    # Main simulation: Axes 1-4 + Dissociation + sub-experiments
 ├── ising_c2_redesigned.py      # Supplementary C2 budget-normalisation probe
 ├── tests.py                    # Regression tests for core functions
 ├── paper.tex                   # Manuscript (REVTeX 4.2)
@@ -62,7 +63,7 @@ ising/
 ├── .gitignore
 ├── LICENSE                     # MIT
 └── outputs/
-    ├── figures/                # 6 figures (PNG + PDF)
+    ├── figures/                # 7 figures (PNG + PDF)
     ├── tables/                 # CSV tables (axis1, axis2, axisB)
     └── data/                   # paper_macros.tex, paper_values.json
 ```
@@ -70,10 +71,11 @@ ising/
 ### File descriptions
 
 **`ising.py`** runs the complete paper computation in a single script:
-- Axis 1 (organism comparison), Axis A/paper-2 (regime crossover),
-  Axis 2/paper-3 (target specificity), Axis C (dissociation), Axis B/paper-4 (causal sign-flip)
-- Generates all 6 figures and 3 CSV tables
-- Writes `outputs/data/paper_macros.tex` and `paper_values.json` with all paper numbers
+- Axis 1 (organism comparison), Axis 2 (regime crossover + near-Tc probe),
+  Axis 3 (target specificity), Axis C (dissociation), Axis 4 (causal sign-flip + random-site control)
+- Sub-experiments: near-$T_c$ crossover, finite-size ($L=32/64/128$), horizon ($K=10/20/50$)
+- Generates all 7 figures and 3 CSV tables
+- Writes `outputs/data/paper_macros.tex` and `paper_values.json` with all 50 paper numbers
 
 **`ising_c2_redesigned.py`** is a standalone supplementary probe ($N=2000$). It tests whether site-selection alignment matters by comparing a site-selection aligned arm against a site-selection anti-aligned arm at matched perturbation budget. No CI-supported site-selection advantage was found at any $\varepsilon$; the causal leverage is direction-dominated (discussed in the paper, Axis 4). Outputs go to `outputs/ising_c2_redesigned/`.
 
@@ -101,12 +103,15 @@ For a fully exposed site, $\delta W_i = -4 < 0$.
 |-----|-------------|----------------|
 | **Aligned** | $\delta W_i < 0$ flips: $p \to p + \varepsilon$ | Promotes wall-reducing flips → accelerates coarsening |
 | **Misaligned** | $\delta W_i < 0$ flips: $p \to p - \varepsilon$ | Suppresses wall-reducing flips → retards coarsening |
+| **Random-site aligned** | Same direction logic at budget-matched random sites ($\rho = E_0/L^2$) | Class-level control: tests whether $d_c=4$ identity matters |
 | **Baseline** | Pure Glauber | Unmodified |
 
 Gap $= \Delta W_\text{baseline} - \Delta W_\text{arm}$. Positive gap = arm achieves greater wall reduction than baseline.
 
 **Sign-flip discriminator:** aligned gap $> 0$ AND misaligned gap $< 0$, both 95% CIs excluding zero.  
 **Result: 4/4** across $\varepsilon \in \{0.02, 0.05, 0.10, 0.20\}$.
+
+**Class-level control result:** at $\varepsilon=0.10$, random arm gap $= +4.70$ vs structural arm gap $= +2.69$. The random arm is larger because at $T=1.80$, ~99% of random sites have $d_c=0$ (like neighbours), so "aligned" logic suppresses their flips → bulk fluctuation suppression, a qualitatively different mechanism from the structural arm (which is ceiling-limited at $d_c=4$ sites with $P_\text{flip}\approx 0.988$). Both mechanisms produce positive gaps; they are not equivalent.
 
 ---
 
