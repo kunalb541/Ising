@@ -420,6 +420,43 @@ def run_aligned(spins, beta, eps, aligned_bool, n):
     for _ in range(n): structure_aligned_sweep(spins, beta, eps, aligned_bool)
 
 
+@njit(cache=False)
+def random_targeted_sweep(spins, beta, eps, rho):
+    """
+    Budget-matched random-site control for Axis 4.
+    Each site selected independently with probability rho (= E0/L^2 at t=0).
+    Selected sites: promote wall-reducing flips (s*h<0), suppress wall-increasing (s*h>0).
+    Same directional logic as structure_aligned_sweep but without d_c=4 class selection.
+    Tests whether structural class identity (d_c=4) is causally necessary vs direction alone.
+    """
+    L2 = spins.shape[0]
+    for parity in range(2):
+        for i in range(L2):
+            im1 = i-1 if i > 0 else L2-1; ip1 = i+1 if i < L2-1 else 0
+            start = parity if (i % 2 == 0) else 1 - parity
+            for j in range(start, L2, 2):
+                jm1 = j-1 if j > 0 else L2-1; jp1 = j+1 if j < L2-1 else 0
+                s = spins[i, j]
+                h = (spins[im1,j] + spins[ip1,j] + spins[i,jm1] + spins[i,jp1])
+                p = 1.0 / (1.0 + math.exp(beta * (2.0 * s * h)))
+                if eps > 0.0 and np.random.random() < rho:
+                    sh = s * h   # sh<0 means flip reduces walls; sh>0 means flip increases walls
+                    if sh < 0:
+                        p = p + eps
+                        if p > 1.0: p = 1.0
+                    elif sh > 0:
+                        p = p - eps
+                        if p < 0.0: p = 0.0
+                if np.random.random() < p:
+                    spins[i, j] = -s
+
+
+@njit(cache=False)
+def run_random_targeted(spins, beta, eps, rho, n):
+    for _ in range(n):
+        random_targeted_sweep(spins, beta, eps, rho)
+
+
 # =============================================================================
 # 7. WARMUP
 # =============================================================================
@@ -436,6 +473,8 @@ def warmup():
     structure_aligned_sweep(d,0.5,0.05,True)
     structure_aligned_sweep(d,0.5,0.05,False)
     run_aligned(d,0.5,0.05,True,1); run_aligned(d,0.5,0.05,False,1)
+    random_targeted_sweep(d,0.5,0.05,0.1)
+    run_random_targeted(d,0.5,0.05,0.1,1)
     log("warmup OK")
 
 
@@ -474,10 +513,11 @@ def sim_pred_world(args):
 
 def sim_causal_world(args):
     """
-    CORRECT AXIS B PROTOCOL:
-    Both aligned and misaligned arms vs pure baseline Glauber.
-    Returns (n_eps, 4): aligned_gap_dW, misaligned_gap_dW, aligned_gap_dM, misaligned_gap_dM
-    gap = baseline - arm (positive aligned = arm loses fewer walls = correct direction)
+    Axis 4 PROTOCOL (correct):
+    Columns 0-3: aligned/misaligned d_c=4-targeted arms vs baseline Glauber.
+    Columns 4-5: budget-matched random-site aligned arm (class-level control).
+    gap = baseline - arm; positive = arm accelerates coarsening.
+    rho = E0/(L^2): density of d_c=4 sites at t=0, used for budget matching.
     """
     seed, eps_list = args
     np.random.seed(seed)
@@ -485,13 +525,16 @@ def sim_causal_world(args):
     spins=np.random.choice(np.array([-1,1],dtype=np.int8),size=(L,L))
     run_glauber(spins, BETA_ORD, EQUIL)
     sp0=spins.copy(); W0=wall_count(sp0); M0=abs_mag(sp0)
-    # No fixed mask — structure_aligned_sweep identifies exposed sites dynamically
+
+    # Budget for random control: density of d_c=4 sites at t=0
+    E0 = count_E(sp0)
+    rho = float(E0) / float(L * L)
 
     # baseline: pure unperturbed Glauber
     base=sp0.copy(); run_glauber(base, BETA_ORD, K)
     base_dW=wall_count(base)-W0; base_dM=abs_mag(base)-M0
 
-    results=np.zeros((len(eps_list),4),dtype=np.float64)
+    results=np.zeros((len(eps_list),6),dtype=np.float64)
     for ei, eps in enumerate(eps_list):
         al=sp0.copy(); run_aligned(al, BETA_ORD, float(eps), True, K)
         al_dW=wall_count(al)-W0; al_dM=abs_mag(al)-M0
@@ -499,11 +542,37 @@ def sim_causal_world(args):
         mis=sp0.copy(); run_aligned(mis, BETA_ORD, float(eps), False, K)
         mis_dW=wall_count(mis)-W0; mis_dM=abs_mag(mis)-M0
 
-        results[ei,0]=base_dW-al_dW    # aligned gap on dW  (want >0)
-        results[ei,1]=base_dW-mis_dW   # misaligned gap on dW (want <0)
-        results[ei,2]=base_dM-al_dM    # aligned gap on dM  (want ~0)
-        results[ei,3]=base_dM-mis_dM   # misaligned gap on dM
+        # Random-site aligned arm (budget-matched, same directional logic)
+        rnd=sp0.copy(); run_random_targeted(rnd, BETA_ORD, float(eps), rho, K)
+        rnd_dW=wall_count(rnd)-W0; rnd_dM=abs_mag(rnd)-M0
+
+        results[ei,0]=base_dW-al_dW    # aligned gap dW     (want >0)
+        results[ei,1]=base_dW-mis_dW   # misaligned gap dW  (want <0)
+        results[ei,2]=base_dM-al_dM    # aligned gap dM     (want ~0)
+        results[ei,3]=base_dM-mis_dM   # misaligned gap dM
+        results[ei,4]=base_dW-rnd_dW   # random-aligned gap dW (class-level control)
+        results[ei,5]=base_dM-rnd_dM   # random-aligned gap dM
     return results
+
+
+def sim_pred_world_param(args):
+    """Parameterized predictive world for near-Tc, finite-size, and horizon sub-experiments."""
+    seed, beta, L_p, K_p, equil_p = args
+    np.random.seed(seed)
+    numba_seed(seed)
+    spins = np.random.choice(np.array([-1,1], dtype=np.int8), size=(L_p, L_p))
+    run_glauber(spins, beta, equil_p)
+    sp0 = spins.copy(); W0 = wall_count(sp0)
+    feats = {
+        'E':     count_E(sp0),
+        'E_ge3': count_E_ge3(sp0),
+        'J':     count_J(sp0),
+        'phi8':  phi_var8(sp0),
+        'W0':    W0,
+        'Bmag':  abs_mag(sp0),
+    }
+    fut = sp0.copy(); run_glauber(fut, beta, K_p); W1 = wall_count(fut)
+    return feats, {'dW': W1 - W0}
 
 
 # =============================================================================
@@ -649,7 +718,7 @@ def fig_axisB_sign_flip(causal_arr):
     ax.set_xticks(x); ax.set_xticklabels(['0 (null)' if e==0 else str(e) for e in EPS_LIST],fontsize=11)
     ax.set_xlabel(r"Generator bias $\varepsilon$",fontsize=12)
     ax.set_ylabel(r"Gap vs baseline $(\Delta W_{\rm base} - \Delta W_{\rm arm})$",fontsize=11)
-    ax.set_title("Axis B — Direction-specific generator control\n"
+    ax.set_title("Axis 4 — Direction-specific generator control\n"
                  r"Aligned $>0$, misaligned $<0$: both CIs exclude zero ($\checkmark$ = sign flip)",
                  fontsize=11)
     ax.legend(fontsize=9.5,loc='upper center',
@@ -688,10 +757,47 @@ def fig_axisB_target_specificity(causal_arr):
         ax.set_ylabel("Gap vs baseline",fontsize=11)
         ax.set_title(f"Target: {title}",fontsize=11)
         ax.legend(fontsize=9)
-    fig.suptitle(r"Axis B — Target specificity: large $\Delta W$ effect, near-zero $\Delta M$",
+    fig.suptitle(r"Axis 4 — Target specificity: large $\Delta W$ effect, near-zero $\Delta M$",
                  fontsize=12,fontweight='bold',y=1.01)
     fig.tight_layout()
     p=FIGS/"ising_axisB_target_specificity.png"
+    fig.savefig(p,dpi=160,bbox_inches="tight")
+    fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
+    log(f"  fig: {p.name}")
+
+
+def fig_axis4_random_control(causal_arr):
+    """Class-level control: d_c=4 structural aligned arm vs budget-matched random-site aligned arm."""
+    al_m,al_lo,al_hi=[],[],[]
+    rn_m,rn_lo,rn_hi=[],[],[]
+    for ei in range(len(EPS_LIST)):
+        m,lo,hi=mci(causal_arr[:,ei,0],seed=ei*10+1)
+        al_m.append(m); al_lo.append(lo); al_hi.append(hi)
+        m,lo,hi=mci(causal_arr[:,ei,4],seed=ei*10+5)
+        rn_m.append(m); rn_lo.append(lo); rn_hi.append(hi)
+
+    fig,ax=plt.subplots(figsize=(7.5,5.2))
+    x=np.arange(len(EPS_LIST)); w=0.36
+    ax.bar(x-w/2,al_m,w,color=C_ALIGN,alpha=0.85,label=r"Structural aligned ($d_c=4$ sites)",zorder=3)
+    ax.bar(x+w/2,rn_m,w,color=C_NEUTRAL,alpha=0.85,label="Random-site aligned (budget-matched)",zorder=3)
+    ax.errorbar(x-w/2,al_m,
+                yerr=[[m-l for m,l in zip(al_m,al_lo)],[h-m for m,h in zip(al_m,al_hi)]],
+                fmt='none',color='#222222',capsize=4,lw=1.8,zorder=4)
+    ax.errorbar(x+w/2,rn_m,
+                yerr=[[m-l for m,l in zip(rn_m,rn_lo)],[h-m for m,h in zip(rn_m,rn_hi)]],
+                fmt='none',color='#222222',capsize=4,lw=1.8,zorder=4)
+    ax.axhline(0,color='black',lw=0.9,ls='--',zorder=2)
+    ax.set_xticks(x); ax.set_xticklabels(['0 (null)' if e==0 else str(e) for e in EPS_LIST],fontsize=11)
+    ax.set_xlabel(r"Generator bias $\varepsilon$",fontsize=12)
+    ax.set_ylabel(r"Gap vs baseline $(\Delta W_{\rm base} - \Delta W_{\rm arm})$",fontsize=11)
+    ax.set_title("Axis 4 — Class-level control: structural vs random-site targeting\n"
+                 "Random arm uses same budget ($\\rho = E_0/L^2$) and same alignment logic",
+                 fontsize=10.5)
+    ax.legend(fontsize=9.5,loc='upper center',
+              bbox_to_anchor=(0.5,-0.14),ncol=2,borderaxespad=0)
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.18)
+    p=FIGS/"ising_axis4_random_control.png"
     fig.savefig(p,dpi=160,bbox_inches="tight")
     fig.savefig(p.with_suffix(".pdf"),bbox_inches="tight"); plt.close(fig)
     log(f"  fig: {p.name}")
@@ -727,7 +833,7 @@ def fig_summary(org_results, dr2_ord, dr2_dis, causal_arr, tgt_results):
     ax2.axhline(0,color='black',lw=0.8,ls='--')
     ax2.set_xticks([0,1]); ax2.set_xticklabels(lbls,fontsize=9.5)
     ax2.set_ylabel(r"$\Delta R^2$ ($E$ vs $\phi_{\rm var8}$)",fontsize=10)
-    ax2.set_title("B. Regime crossover (Axis A)",fontsize=10.5,fontweight='bold')
+    ax2.set_title("B. Regime crossover (Axis 2)",fontsize=10.5,fontweight='bold')
     sr=(dr2_ord[1]>0)and(dr2_dis[2]<0)
     ax2.annotate("Sign flip: "+("PASS" if sr else "FAIL"),
                  xy=(0.5,0.92),xycoords='axes fraction',ha='center',
@@ -766,7 +872,7 @@ def fig_summary(org_results, dr2_ord, dr2_dis, causal_arr, tgt_results):
     ax4.axhline(0,color='black',lw=0.8,ls='--')
     ax4.set_xticks([0,1,2,3]); ax4.set_xticklabels(lbls4,fontsize=9.5)
     ax4.set_ylabel("Gap vs baseline",fontsize=10)
-    ax4.set_title(f"D. Generator causal ($\\varepsilon=0.10$, Axis B)",fontsize=10.5,fontweight='bold')
+    ax4.set_title(f"D. Generator causal ($\\varepsilon=0.10$, Axis 4)",fontsize=10.5,fontweight='bold')
     flip=(aw_lo>0)and(mw_hi<0)
     ax4.annotate("Sign flip: "+("PASS" if flip else "FAIL"),
                  xy=(0.5,0.92),xycoords='axes fraction',ha='center',
@@ -788,7 +894,11 @@ def fig_summary(org_results, dr2_ord, dr2_dis, causal_arr, tgt_results):
 def save_outputs(org_results, tgt_results, causal_arr,
                  dr2_ord, dr2_dis, r2_wb, r2_e,
                  dr2_vs_wb=0.0, lo_vs_wb=0.0, hi_vs_wb=0.0,
-                 dr2_ch_ord=None, dr2_ch_dis=None, asym_at_10=float('nan')):
+                 dr2_ch_ord=None, dr2_ch_dis=None, asym_at_10=float('nan'),
+                 rand_gap_10=(float('nan'),float('nan'),float('nan')),
+                 dr2_crit=None, T_CRIT=2.20,
+                 fss_results=None, mean_E_64=float('nan'),
+                 hor_results=None):
 
     # tables
     save_csv(pd.DataFrame(org_results), TABS/"axis1_organisms.csv")
@@ -882,6 +992,34 @@ def save_outputs(org_results, tgt_results, causal_arr,
         cmd("AxisOneVsWBlo",tf(lo_vs_wb)),
         cmd("AxisOneVsWBhi",tf(hi_vs_wb)),
         cmd("AxisBAsymRatio",tf(asym_at_10,1)),
+        # Random-site control (class-level, Axis 4 supplement)
+        cmd("RandGapTen",    tf(float(rand_gap_10[0]),2)),
+        cmd("RandGapTenLo",  tf(float(rand_gap_10[1]),2)),
+        cmd("RandGapTenHi",  tf(float(rand_gap_10[2]),2)),
+        cmd("MeanELSixtyFour", tf(float(mean_E_64),1)),
+        # Near-Tc crossover (T=2.20)
+        cmd("NearTcTemp",    tf(float(T_CRIT),2)),
+        cmd("NearTcDR",      tf(float(dr2_crit[0]) if dr2_crit is not None else float('nan'))),
+        cmd("NearTcDRlo",    tf(float(dr2_crit[1]) if dr2_crit is not None else float('nan'))),
+        cmd("NearTcDRhi",    tf(float(dr2_crit[2]) if dr2_crit is not None else float('nan'))),
+        # Finite-size (L=32, L=128)
+        cmd("FSSLThirtyTwo", tf(float(fss_results[32]['dr2']) if fss_results else float('nan'))),
+        cmd("FSSLThirtyTwoLo", tf(float(fss_results[32]['lo']) if fss_results else float('nan'))),
+        cmd("FSSLThirtyTwoHi", tf(float(fss_results[32]['hi']) if fss_results else float('nan'))),
+        cmd("FSSMeanEThirtyTwo", tf(float(fss_results[32]['mean_E']) if fss_results else float('nan'),1)),
+        cmd("FSSLOneTwentyEight", tf(float(fss_results[128]['dr2']) if fss_results else float('nan'))),
+        cmd("FSSLOneTwentyEightLo", tf(float(fss_results[128]['lo']) if fss_results else float('nan'))),
+        cmd("FSSLOneTwentyEightHi", tf(float(fss_results[128]['hi']) if fss_results else float('nan'))),
+        cmd("FSSMeanEOneTwentyEight", tf(float(fss_results[128]['mean_E']) if fss_results else float('nan'),1)),
+        # Horizon sensitivity (K=10, K=50)
+        cmd("HorKTenDR",    tf(float(hor_results[10]['dr2']) if hor_results else float('nan'))),
+        cmd("HorKTenDRlo",  tf(float(hor_results[10]['lo'])  if hor_results else float('nan'))),
+        cmd("HorKTenDRhi",  tf(float(hor_results[10]['hi'])  if hor_results else float('nan'))),
+        cmd("HorKFiftyDR",  tf(float(hor_results[50]['dr2']) if hor_results else float('nan'))),
+        cmd("HorKFiftyDRlo",tf(float(hor_results[50]['lo'])  if hor_results else float('nan'))),
+        cmd("HorKFiftyDRhi",tf(float(hor_results[50]['hi'])  if hor_results else float('nan'))),
+        # Ridge penalty
+        cmd("RidgeAlpha",   tf(float(ALPHA),1)),
     ]
     with open(DATA/"paper_macros.tex","w") as f: f.writelines(lines)
     log("  tables + JSON + macros saved")
@@ -898,7 +1036,7 @@ def main():
     log("="*70)
     log(f"ising_paper.py v2  FULL_RUN={FULL_RUN}  N_PRED={N_PRED}  N_CAUSAL={N_CAUSAL}")
     log(f"L={L}  K={K}  T_ORD={T_ORD}  T_DIS={T_DIS}  EQUIL={EQUIL}")
-    log("Axis B protocol: aligned-vs-misaligned generator, sign-flip discriminator")
+    log("Axis 4 protocol: aligned-vs-misaligned generator + random-site control, sign-flip discriminator")
     log("="*70)
 
     warmup()
@@ -1016,39 +1154,105 @@ def main():
         log(f"  {key:<30}: ΔR²={dr2:+.4f}  CI=[{lo:+.4f},{hi:+.4f}]  "
             f"R²_fine={r2_fine:.4f}  R²_coarse={r2_coarse:.4f}")
 
-    # AXIS B — aligned vs misaligned generator (THE CORRECT CAUSAL TEST)
-    log("\n--- Axis B: aligned vs misaligned generator ---")
-    log("  Protocol: structure_aligned_sweep, two directions, vs baseline Glauber")
+    # AXIS 4 — aligned vs misaligned generator (THE CORRECT CAUSAL TEST)
+    log("\n--- Axis 4: aligned vs misaligned generator + random-site control ---")
+    log("  Protocol: d_c=4-targeted aligned/misaligned arms + budget-matched random arm vs baseline")
     log("  Earn condition: aligned>0 AND misaligned<0, both CIs exclude zero")
+    log("  Class-level control: random-site aligned gap should be much smaller than structural gap")
     out_c=run_parallel(sim_causal_world,
                        [(SEED+90000+s,EPS_LIST) for s in range(N_CAUSAL)],"causal")
-    causal_arr=np.array(out_c)  # (N_CAUSAL, n_eps, 4)
+    causal_arr=np.array(out_c)  # (N_CAUSAL, n_eps, 6)
 
-    log("\n  eps   | aligned dW              | misaligned dW           | sign_flip | dM_vs_dW_ratio | asym")
-    log("  " + "-" * 100)
+    log("\n  eps   | aligned dW (struct)     | misaligned dW           | random-aligned dW       | sign_flip")
+    log("  " + "-" * 110)
     asym_at_10 = float('nan')
+    rand_gap_10_m = float('nan'); rand_gap_10_lo = float('nan'); rand_gap_10_hi = float('nan')
     for ei, eps in enumerate(EPS_LIST):
         al_m,al_lo,al_hi = mci(causal_arr[:,ei,0], seed=ei*10+1)
         mi_m,mi_lo,mi_hi = mci(causal_arr[:,ei,1], seed=ei*10+2)
         dm_m,dm_lo,dm_hi = mci(causal_arr[:,ei,2], seed=ei*10+3)
+        rn_m,rn_lo,rn_hi = mci(causal_arr[:,ei,4], seed=ei*10+5)
         flip = (al_lo > 0) and (mi_hi < 0)
-        # dM effect relative to dW: small ratio supports target-specificity
-        # NOT claimed as strict null — see wording note
         dW_scale = abs(al_m) if abs(al_m) > 1e-6 else 1.0
         dm_ratio = abs(dm_m) / dW_scale
         log(f"  {eps:.2f}  | {al_m:+.3f} [{al_lo:+.3f},{al_hi:+.3f}] | "
             f"{mi_m:+.3f} [{mi_lo:+.3f},{mi_hi:+.3f}] | "
-            f"{'PASS' if flip else 'FAIL':>9} | {dm_ratio:.3f} (dM/dW_aligned)")
+            f"{rn_m:+.3f} [{rn_lo:+.3f},{rn_hi:+.3f}] | "
+            f"{'PASS' if flip else 'FAIL':>9}")
         if eps > 0:
             asym = abs(mi_m)/al_m if al_m > 1e-6 else float('nan')
-            log(f"    gap asymmetry |misaligned|/aligned = {asym:.2f}x")
+            log(f"    gap asymmetry |misaligned|/aligned = {asym:.2f}x  |  random/structural = {abs(rn_m)/max(abs(al_m),1e-6):.2f}x")
             if abs(eps - 0.10) < 1e-9:
                 asym_at_10 = asym
+                rand_gap_10_m = rn_m; rand_gap_10_lo = rn_lo; rand_gap_10_hi = rn_hi
 
-    log("  NOTE on dM: the dominant effect is on ΔW; ΔM coupling is comparatively small.")
-    log("  dM does not strictly null 4/4 — do not write 'ΔM null 4/4'.")
-    log("  Paper wording: 'direction-specific on ΔW; ΔM remains comparatively small'.")
+    log("  NOTE on dM: dominant effect is on ΔW; ΔM coupling is comparatively small.")
     log(f"  Gap asymmetry at ε=0.10: {asym_at_10:.2f}x")
+    log(f"  Random-site aligned gap at ε=0.10: {rand_gap_10_m:+.3f} [{rand_gap_10_lo:+.3f},{rand_gap_10_hi:+.3f}]")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT A: Near-critical temperature T=2.20
+    # -------------------------------------------------------------------------
+    T_CRIT = 2.20; BETA_CRIT = 1.0/T_CRIT
+    N_CRIT = max(1000, N_PRED//3); EQUIL_CRIT = 2000  # longer equilibration near Tc
+    log(f"\n--- Sub-experiment: near-Tc crossover at T={T_CRIT} (N={N_CRIT}, EQUIL={EQUIL_CRIT}) ---")
+    out_crit=run_parallel(sim_pred_world_param,
+                          [(SEED+30000+s,BETA_CRIT,L,K,EQUIL_CRIT) for s in range(N_CRIT)],
+                          "near-Tc")
+    feats_crit=[x[0] for x in out_crit]; tgts_crit=[x[1] for x in out_crit]
+    dW_crit=np.array([t['dW'] for t in tgts_crit])
+    XE_crit=np.array([f['E'] for f in feats_crit]).reshape(-1,1)
+    Xphi_crit=np.array([f['phi8'] for f in feats_crit]).reshape(-1,1)
+    dr2_crit=dr2_boot(XE_crit,Xphi_crit,dW_crit,nb=N_BOOT//2,seed=301)
+    r2_E_crit = ridge_cv(XE_crit,dW_crit,seed=302)
+    r2_phi_crit = ridge_cv(Xphi_crit,dW_crit,seed=303)
+    log(f"  T={T_CRIT}: ΔR²(E vs phi8)={dr2_crit[0]:+.4f}  CI=[{dr2_crit[1]:+.4f},{dr2_crit[2]:+.4f}]")
+    log(f"  R²(E)={r2_E_crit:.4f}  R²(phi8)={r2_phi_crit:.4f}")
+    log(f"  Crossover summary: T=1.80: ΔR²=+{dr2_ord[0]:.3f} | T=2.20: ΔR²={dr2_crit[0]:+.3f} | T=2.50: ΔR²={dr2_dis[0]:+.3f}")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT B: Finite-size check L=32 and L=128
+    # -------------------------------------------------------------------------
+    N_FSS = max(500, N_PRED//6)
+    log(f"\n--- Sub-experiment: finite-size check (N={N_FSS} each, T={T_ORD}) ---")
+    fss_results = {}
+    for L_fss, equil_fss in [(32, 500), (128, 2000)]:
+        out_fss=run_parallel(sim_pred_world_param,
+                             [(SEED+40000+s,BETA_ORD,L_fss,K,equil_fss) for s in range(N_FSS)],
+                             f"L={L_fss}")
+        feats_fss=[x[0] for x in out_fss]; tgts_fss=[x[1] for x in out_fss]
+        dW_fss=np.array([t['dW'] for t in tgts_fss])
+        XE_fss=np.array([f['E'] for f in feats_fss]).reshape(-1,1)
+        Xphi_fss=np.array([f['phi8'] for f in feats_fss]).reshape(-1,1)
+        dr2_fss=dr2_boot(XE_fss,Xphi_fss,dW_fss,nb=N_BOOT//3,seed=400+L_fss)
+        mean_E_fss = float(np.mean([f['E'] for f in feats_fss]))
+        fss_results[L_fss] = {'dr2': dr2_fss[0], 'lo': dr2_fss[1], 'hi': dr2_fss[2],
+                               'mean_E': mean_E_fss}
+        log(f"  L={L_fss}: ΔR²(E vs phi8)={dr2_fss[0]:+.4f}  CI=[{dr2_fss[1]:+.4f},{dr2_fss[2]:+.4f}]  mean_E={mean_E_fss:.1f}")
+    # L=64 reference
+    mean_E_64 = float(np.mean([f['E'] for f in feats_o]))
+    log(f"  L=64 (main): ΔR²={dr2_ord[0]:+.4f}  mean_E={mean_E_64:.1f}")
+
+    # -------------------------------------------------------------------------
+    # SUB-EXPERIMENT C: Horizon sensitivity K=10 and K=50
+    # -------------------------------------------------------------------------
+    N_HOR = max(500, N_PRED//6)
+    log(f"\n--- Sub-experiment: horizon sensitivity (N={N_HOR} each, T={T_ORD}, L={L}) ---")
+    hor_results = {}
+    for K_hor in [10, 50]:
+        out_hor=run_parallel(sim_pred_world_param,
+                             [(SEED+50000+s,BETA_ORD,L,K_hor,EQUIL) for s in range(N_HOR)],
+                             f"K={K_hor}")
+        feats_hor=[x[0] for x in out_hor]; tgts_hor=[x[1] for x in out_hor]
+        dW_hor=np.array([t['dW'] for t in tgts_hor])
+        XEg_hor=np.column_stack([np.array([f['E_ge3'] for f in feats_hor]),
+                                  np.array([f['J']     for f in feats_hor])])
+        Xphi_hor=np.array([f['phi8'] for f in feats_hor]).reshape(-1,1)
+        dr2_hor=dr2_boot(XEg_hor,Xphi_hor,dW_hor,nb=N_BOOT//3,seed=500+K_hor)
+        hor_results[K_hor] = {'dr2': dr2_hor[0], 'lo': dr2_hor[1], 'hi': dr2_hor[2]}
+        log(f"  K={K_hor}: ΔR²(E_ge3+J vs phi8)={dr2_hor[0]:+.4f}  CI=[{dr2_hor[1]:+.4f},{dr2_hor[2]:+.4f}]")
+    # K=20 reference from best_org champion (same statistic)
+    log(f"  K=20 (main): ΔR²={max(org_results,key=lambda r:r['dr2'])['dr2']:+.4f}")
 
     # figures
     log("\n--- Generating figures ---")
@@ -1060,29 +1264,41 @@ def main():
     fig_axis2(tgt_results,best_org)
     fig_axisB_sign_flip(causal_arr)
     fig_axisB_target_specificity(causal_arr)
+    fig_axis4_random_control(causal_arr)
     fig_summary(org_results,dr2_ord,dr2_dis,causal_arr,tgt_results)
 
     # tables + macros
     log("\n--- Saving outputs ---")
-    vals,df_c=save_outputs(org_results,tgt_results,causal_arr,
-                           dr2_ord,dr2_dis,r2_wb,r2_e,
-                           dr2_vs_wb=dr2_vs_wb,lo_vs_wb=lo_vs_wb,hi_vs_wb=hi_vs_wb,
-                           dr2_ch_ord=dr2_ch_ord,dr2_ch_dis=dr2_ch_dis,
-                           asym_at_10=asym_at_10)
+    vals,df_c=save_outputs(
+        org_results,tgt_results,causal_arr,
+        dr2_ord,dr2_dis,r2_wb,r2_e,
+        dr2_vs_wb=dr2_vs_wb,lo_vs_wb=lo_vs_wb,hi_vs_wb=hi_vs_wb,
+        dr2_ch_ord=dr2_ch_ord,dr2_ch_dis=dr2_ch_dis,
+        asym_at_10=asym_at_10,
+        rand_gap_10=(rand_gap_10_m,rand_gap_10_lo,rand_gap_10_hi),
+        dr2_crit=dr2_crit, T_CRIT=T_CRIT,
+        fss_results=fss_results, mean_E_64=mean_E_64,
+        hor_results=hor_results,
+    )
 
     # final report
     log("\n"+"="*70)
     log("FINAL REPORT")
     log("="*70)
     log(f"  Axis 1  champion:  {vals['best_organism']}  ΔR²={vals['axis1_best_dr2']:+.4f}")
-    log(f"  Axis A  crossover: T={T_ORD} ΔR²={vals['axis_A_ord_dr2']:+.4f}  "
+    log(f"  Axis 2  crossover: T={T_ORD} ΔR²={vals['axis_A_ord_dr2']:+.4f}  "
         f"T={T_DIS} ΔR²={vals['axis_A_dis_dr2']:+.4f}  "
         f"sign_reversal={vals['sign_reversal']}")
-    log(f"  Axis 2  champion target: {vals['best_target']}  ΔR²={vals['axis2_best_dr2']:+.4f}")
+    log(f"  Near-Tc: T={T_CRIT} ΔR²={dr2_crit[0]:+.4f}")
+    log(f"  Axis 3  champion target: {vals['best_target']}  ΔR²={vals['axis2_best_dr2']:+.4f}")
     log(f"  Axis C  gap:       R²([W0,Bmag])={r2_wb:.4f}  R²(E)={r2_e:.4f}  "
         f"gap={r2_wb-r2_e:+.4f}")
-    log(f"  Axis B  sign_flips: {vals['axisB_n_sign_flip']}/{vals['axisB_n_eps']}  "
-        f"support={vals['axisB_support']}")
+    log(f"  Axis 4  sign_flips: {vals['axisB_n_sign_flip']}/{vals['axisB_n_eps']}  support={vals['axisB_support']}")
+    log(f"  Random-control gap (ε=0.10): {rand_gap_10_m:+.3f} vs structural {vals['axisB_aligned_eps10']:+.3f}")
+    log(f"  Finite-size:  L=32 ΔR²={fss_results[32]['dr2']:+.4f}  "
+        f"L=128 ΔR²={fss_results[128]['dr2']:+.4f}  L=64 ref={dr2_ord[0]:+.4f}")
+    log(f"  Horizon:  K=10 ΔR²={hor_results[10]['dr2']:+.4f}  "
+        f"K=50 ΔR²={hor_results[50]['dr2']:+.4f}  K=20 ref={max(org_results,key=lambda r:r['dr2'])['dr2']:+.4f}")
     log(f"\n  All outputs: {OUT}/")
     log(f"  Runtime: {time.time()-t0:.1f}s")
     flush_log()
