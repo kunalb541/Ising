@@ -23,49 +23,44 @@ Causal Control in Kinetic Ising Dynamics}
 
 %-----------------------------------------------------------------------
 \begin{abstract}
-We ask whether predictive sufficiency implies causal access in the two-dimensional kinetic Ising model, and whether predictive ranking is stable across dynamical regimes. The answer to both is no. The central result is a predictor-handle dissociation: a coarse macro-state and the fine champion are statistically indistinguishable as predictors of future domain-wall change, yet only the fine structure yields a direction-specific causal handle. A regime-crossover result earns the regime-dependence qualifier and blocks the objection that fine descriptions win simply by having more bits. Four empirical axes support these claims.
-(\textbf{Axis~1, organism comparison})\;
-Against a block-variance coarse rival that achieves $R^2 \approx 0$ for
-$\Delta W$ in the ordered phase (a near-null baseline), the fine champion
-$E_{\geq 3}+J$ achieves $\Delta R^2 = +\AxisOneDR$
-(95\% CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$).
-Against the stronger coarse rival $[W_0, B_\mathrm{mag}]$, the gap
-narrows to $\Delta R^2 = \AxisOneVsWB$ (CI includes zero): the two
-descriptions are statistically indistinguishable as predictors.
-(\textbf{Axis~2, regime crossover})\; This advantage reverses sign in the
-disordered phase ($+\AxisAOrdDR$ ordered, $\AxisADisDR$ disordered),
-showing that the fine-over-coarse advantage is regime-dependent.
-(\textbf{Axis~3, target specificity})\; Under a fine-over-coarse
-$\Delta R^2$ criterion, future domain-wall change $\Delta W$ is the
-target most specifically favoured by the fine description
-($\Delta R^2 = +\AxisTwoDR$); this is not merely the most predictable
-target in absolute terms.
-(\textbf{Axis~2, regime crossover})\; includes a near-critical probe at
-$T=\NearTcTemp$, which finds $\Delta R^2\approx\NearTcDR$ (CI spans zero),
-placing the crossover between $T=\IsingTOrd$ and $T=\NearTcTemp$.
-(\textbf{Axis~4, causal control})\; Biasing the Glauber generator toward
-wall-reducing flips at exposed sites accelerates future wall removal
-(aligned arm removes more walls than baseline), while biasing against
-those flips retards it; this direction-specific sign flip holds at all
-active perturbation strengths (\AxisBSignFlips{} sign flips on non-null
-$\varepsilon$ values), and \emph{also holds in the disordered phase}
-($T=\IsingTDis$, \CausalDisSignFlips{} sign flips), where the predictive
-advantage of $E$ has reversed.
-A class-level control (budget-matched random-site arm with the same
-directional logic) and a filter-decomposition test together show that
-the structural and random arms are two distinct per-site interventions
-on the same generator, neither reducible to a single-class mechanism;
-both, however, require local information ($s\cdot h$) that global
-aggregate descriptions cannot supply.
-(\textbf{Dissociation})\; The aggregate coarse macro-state
-$[W_0, B_\mathrm{mag}]$ ($R^2 = \AxisCRWB$) and the fine champion
-$E_{\geq 3}+J$ ($R^2 \approx \AxisOneDR$) are statistically indistinguishable
-as predictors of $\Delta W$, yet only per-site fine structure enables
-a direction-specific causal handle: global aggregate descriptions carry
-no per-site directional information and cannot be used to implement
-the generator bias of Axis~4.
-Two descriptions with equivalent predictive power differ entirely in
-their capacity to support per-site causal intervention.
+We study how the choice of description of a 2D kinetic Ising lattice
+shapes its predictive and causal usefulness for future domain-wall
+dynamics, separating two questions that are usually conflated.
+(\textbf{Predictive organization})\;
+A two-column fine descriptor $E_{\geq 3}+J$ achieves
+$\Delta R^2 = +\AxisOneDR$ ($95\%$ CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$)
+over the near-null block-variance rival $\phi_{\rm var8}$, but ties
+statistically with the global aggregate $[W_0, B_{\rm mag}]$
+($\Delta R^2 = \AxisOneVsWB$, CI includes zero).
+The simpler exposed-site count $E$ undergoes a smooth
+temperature-dependent sign reversal of $\Delta R^2$ vs $\phi_{\rm var8}$:
+$+\AxisAOrdDR$ at $T=\IsingTOrd$, $+\CrossTwoZeroDR$ at $T=2.00$,
+$\NearTcDR$ at $T=\NearTcTemp$, $\CrossTwoThirtyFiveDR$ at $T=2.35$,
+$\AxisADisDR$ at $T=\IsingTDis$.
+(\textbf{Directional causal organization})\;
+A generator protocol that biases wall-reducing transitions and its
+mirror that suppresses them produces a sign-flip discriminator that
+passes \AxisBSignFlips{} at $T=\IsingTOrd$ and \CausalDisSignFlips{}
+at $T=\IsingTDis$.
+The temperature-driven reversal of the predictive comparison does not
+propagate to the causal protocol; direction-specific intervention
+works in both phases.
+(\textbf{Magnitude is not selector-specific})\;
+A budget-matched random-site arm with the same directional logic
+produces gaps at least as large as the structural $d_c=4$-aligned arm
+($+\RandGapTen$ vs $+\AxisBAlignedTen$ at $\varepsilon=0.10$), and a
+filter decomposition cannot attribute the random-arm magnitude to any
+single $d_c$ class.
+We therefore do not claim that any one structural selector is uniquely
+strongest in causal magnitude.
+(\textbf{Aggregate-vs-local dissociation})\;
+$[W_0, B_{\rm mag}]$ matches $E_{\geq 3}+J$ as a predictor of $\Delta W$
+but cannot encode the per-site quantity $s\cdot h$ on which every
+direction-specific intervention we test conditions.
+The dissociation that survives all controls is between global
+aggregate predictive sufficiency and local intervention accessibility,
+not between one preferred selector and the rest of the descriptor
+space.
 \end{abstract}
 
 \pacs{05.10.Ln, 05.50.+q, 75.10.Hk, 64.60.Cn}
@@ -76,29 +71,51 @@ their capacity to support per-site causal intervention.
 \section{Introduction}
 \label{sec:intro}
 
-A common working assumption in statistical physics is that different
-descriptions of the same system may differ in predictive usefulness---but
-which description is best, and whether that ranking is stable across
-regimes and tasks, is not always obvious.
-This paper studies how predictive and causal usefulness depend on the
-choice of description in a simple, well-understood dynamical system.
+Different descriptions of the same physical system can be evaluated
+along two axes that are usually conflated: predictive usefulness for
+some future quantity, and causal usefulness as a handle for
+direction-specific intervention.
+These two notions can come apart, and the conditions under which they
+do are not well charted in concrete physical models.
+We use the 2D kinetic Ising lattice with Glauber dynamics to chart
+them in a controlled setting.
 
-The central question is whether predictive sufficiency implies causal
-access: can a description that accurately forecasts future domain-wall
-change be used to controllably change it?
-We find the answer is no, and that the dissociation is not an artefact of
-a particular baseline choice: even the strongest available coarse rival
-$[W_0, B_\mathrm{mag}]$ matches the fine champion predictively
-($\Delta R^2 = \AxisOneVsWB$, CI includes zero), yet only the fine
-structure provides a direction-specific causal handle.
-The crossover result earns the regime-dependence qualifier: the
-fine-over-coarse predictive advantage reverses sign from ordered
-($+\AxisAOrdDR$) to disordered ($\AxisADisDR$ phase), blocking the
-objection that fine descriptions simply win by having more bits.
-The fine champion is $E_{\geq 3}+J$; the target most specifically
-favoured by fine descriptions is $\Delta W$; and the causal sign-flip
-holds across all \AxisBSignFlips{} active perturbation strengths
-(the $\varepsilon=0$ null produces a gap consistent with zero, as expected).
+The natural macroscopic observables (domain-wall count $W$,
+magnetisation $|\bar\sigma|$) and the natural fine descriptors
+(per-site exposure-class counts) span a clean range from global
+aggregate to per-site local; both the predictive question (which of
+these forecasts $\Delta W$ best) and the causal question (which of
+these can implement a generator-level bias that produces a
+direction-specific change in $\Delta W$) admit operational tests.
+Asking which description is universally best is not a coherent
+question; the operationalised version is to ask how predictive
+organization and direction-specific causal organization depend on
+regime, target, and the level of locality at which the description
+encodes the lattice.
+
+We report three findings whose joint shape is more informative than
+any single one.
+First, predictive advantage of fine over coarse is regime-dependent
+and varies smoothly with temperature: a simple exposed-site count
+beats the block-variance rival in the ordered phase, ties through the
+critical region, and loses in the disordered phase.
+Second, direction-specific causal sign control via the generator is
+robust across that same temperature range: the aligned/misaligned
+discriminator passes in both phases.
+Third, magnitude superiority of the structural intervention is
+\emph{not} what we find---a budget-matched random-site arm with the
+same directional logic produces comparable or larger gaps, and a
+filter decomposition fails to attribute that magnitude to any single
+$d_c$ class.
+
+What survives is narrower than ``fine beats coarse'' but cleaner: the
+global aggregate $[W_0, B_{\rm mag}]$ can be predictively sufficient
+for $\Delta W$ while still lacking the per-site information
+($s\cdot h$) needed to implement any of the direction-specific
+generator interventions tested.
+The dissociation is between aggregate prediction and local
+intervention accessibility; magnitude superiority of any one
+structural selector is not claimed.
 
 \paragraph{Why the Ising model.}
 The 2D kinetic Ising model with Glauber dynamics
@@ -115,29 +132,21 @@ is energetically costly, and is a natural structural precursor of upcoming
 interface simplification.
 This geometry makes the Ising model a clean and interpretable testbed.
 
-\paragraph{Why description choice matters.}
-Finer descriptions always contain more bits, but more bits do not
-automatically produce better predictions for a specific target.
-The predictive signal for interface-level change lies in sparse,
-geometrically special objects---exposed tips, junction bends---that
-coarse block averages discard.
-In the disordered phase no such sparse structure exists; coarse summaries
-recover the predictive advantage.
-And predictive sufficiency does not confer causal access: as we
-demonstrate, the variable that best forecasts $\Delta W$ is not the
-variable whose structure can be used to controllably change $\Delta W$.
-
 \paragraph{Paper organisation.}
-This paper establishes four empirical results and one dissociation result:
-\textbf{(1)}~organism comparison in the ordered phase;
-\textbf{(2)}~regime crossover demonstrating regime-dependence;
-\textbf{(3)}~target specificity under a fine-over-coarse criterion;
-\textbf{(4)}~direction-specific causal control via generator alignment;
-and \textbf{(D)}~predictor-handle dissociation.
 Section~\ref{sec:background} reviews related work.
-Section~\ref{sec:model} presents the model, observables, and causal protocol.
-Section~\ref{sec:results} reports results with figures and tables.
-Sections~\ref{sec:discussion}--\ref{sec:conclusion} discuss implications and conclude.
+Section~\ref{sec:model} presents the model, observables, predictive
+evaluation, and the causal protocol with its random-site and
+filter-decomposition controls.
+Section~\ref{sec:results} reports the predictive comparison
+(Section~\ref{sec:axis1}), the temperature-dependent crossover of $E$
+vs $\phi_{\rm var8}$ (Section~\ref{sec:axis2}), the directional causal
+sign-flip test in both phases (Section~\ref{sec:axis4},
+Section~\ref{sec:causal_dis}), the random-site and filter
+controls (Section~\ref{sec:axis4_random},
+Section~\ref{sec:filter_decomp}), and the aggregate-vs-local
+dissociation (Section~\ref{sec:diss}).
+Sections~\ref{sec:discussion}--\ref{sec:conclusion} discuss
+implications and conclude.
 
 %-----------------------------------------------------------------------
 \section{Related Background}
@@ -393,7 +402,7 @@ block average discards.
 Note that $R^2(\phi_{\rm var8}, \Delta W) \approx 0$ at $T=\IsingTOrd$: the block-variance rival is indistinguishable from a mean-prediction baseline for this target in the ordered phase, making the headline $\Delta R^2=+\AxisOneDR$ a comparison against a near-null baseline.
 Against the more informative coarse rival $[W_0, B_{\rm mag}]$---which achieves $R^2=\AxisCRWB$ for $\Delta W$---the fine champion's advantage narrows to $\Delta R^2=\AxisOneVsWB$ (95\% CI $[\AxisOneVsWBlo,\,+\AxisOneVsWBhi]$), a margin whose CI includes zero.
 The fine organism and $[W_0, B_{\rm mag}]$ are therefore \emph{statistically indistinguishable as predictors} of $\Delta W$.
-This is not a failure of the fine description; it is the basis of the dissociation result (Section~\ref{sec:diss}): two predictors with equivalent forecasting power differ entirely in their causal leverage.
+This is not a failure of the fine description; it is the basis of the aggregate-vs-local dissociation result (Section~\ref{sec:diss}): two predictors with equivalent forecasting power can differ in the kind of intervention they support---a property distinct from forecasting accuracy.
 The dotted line in Fig.~\ref{fig:axis1} marks the $[W_0, B_{\rm mag}]$ reference level.
 
 Note that the 95\% CI $[\AxisOneVsWBlo,+\AxisOneVsWBhi]$ is asymmetric
@@ -570,13 +579,40 @@ $\varepsilon$ & Aligned gap & Misaligned gap & Sign flip \\
 \end{tabular}
 \end{table}
 
+Axis~4 tests a specific aspect of a description's role: not whether
+the description \emph{predicts} $\Delta W$ well, but whether the
+per-site information it carries can implement a direction-specific
+bias in the Glauber generator that produces a sign-flip on $\Delta W$.
+The question is not whether one selection rule is the strongest in
+magnitude---that question is settled negatively below by the
+random-site arm (Section~\ref{sec:axis4_random}) and the filter
+decomposition (Section~\ref{sec:filter_decomp})---but whether the
+direction-conditioning logic itself works.
+
+The protocol uses two arms with mirrored directional bias.
+The aligned arm increases the Glauber flip probability at sites whose
+local effect on $W$ is negative ($\delta W_i < 0$); the misaligned
+arm decreases it.
+The discriminator is a sign-flip pattern: aligned positive gap on
+$\Delta W$, misaligned negative gap, both with $95\%$ confidence
+intervals excluding zero.
+We report this discriminator at four perturbation strengths
+$\varepsilon \in \{0.02, 0.05, 0.10, 0.20\}$ in both ordered
+($T=\IsingTOrd$) and disordered ($T=\IsingTDis$,
+Section~\ref{sec:causal_dis}) phases, with budget-matched random-site
+and filter-decomposition controls.
+The test is therefore of the directional conditioning logic, not of
+selector magnitude.
+
 Figures~\ref{fig:axis4_main}--\ref{fig:axis4_spec} and Table~\ref{tab:axisB}
-present the causal generator test.
-The result is \AxisBSupport{}: \AxisBSignFlips{} active $\varepsilon$ values pass the
-sign-flip discriminator (the $\varepsilon=0$ null produces a gap consistent with zero as expected).
+present the ordered-phase result.
+\AxisBSignFlips{} active $\varepsilon$ values pass the sign-flip
+discriminator (the $\varepsilon=0$ null produces a gap consistent with
+zero as expected).
 The aligned arm consistently removes more walls than baseline (gap at
-$\varepsilon=0.10$: $+\AxisBAlignedTen$, CI excludes zero); the misaligned
-arm consistently removes fewer (gap: $\AxisBMisalnTen$, CI excludes zero).
+$\varepsilon=0.10$: $+\AxisBAlignedTen$, CI excludes zero); the
+misaligned arm consistently removes fewer (gap: $\AxisBMisalnTen$, CI
+excludes zero).
 
 \paragraph{Why sign flip $\neq$ generic perturbation.}
 Comparing one biased arm to the unperturbed baseline would only show that
@@ -788,44 +824,55 @@ We do not, however, claim that the $d_c=4$ selector is uniquely causal
 in magnitude: the random-site arm shows that other per-site selection
 schemes can produce comparable or larger gaps under our protocol.
 
-\subsection{Predictor-handle dissociation}
+\subsection{Aggregate-vs-local dissociation}
 \label{sec:diss}
 
-Two descriptions of the same configuration predict $\Delta W$ with
-statistically indistinguishable accuracy:
+Two descriptions of the same configuration achieve statistically
+indistinguishable out-of-sample $R^2$ for $\Delta W$:
 \begin{equation}
-R^2([W_0, B_\mathrm{mag}]) = \AxisCRWB, \qquad
-R^2(E_{\geq 3}+J) \approx \AxisOneDR, \qquad
-\Delta R^2 = \AxisOneVsWB \ \ \text{(CI includes zero)}.
+R^2([W_0, B_\mathrm{mag}]) = \AxisCRWB,\qquad
+R^2(E_{\geq 3}+J) \approx \AxisOneDR,\qquad
+\Delta R^2 = \AxisOneVsWB \ \ \text{(95\% CI includes zero)}.
 \end{equation}
-Both also outperform the single-feature count $R^2(E) = \AxisCRE$ by a
-large margin ($+\AxisCGap$).
-The key asymmetry is causal, not predictive: the generator bias of Axis~4
-is conditioned on the local exposed-site geometry that $E_{\geq 3}+J$
-encodes, and produces a direction-specific sign flip ($\AxisBSignFlips$).
-The aggregate $[W_0, B_\mathrm{mag}]$ carries no site-specific structural
-information and cannot be used as a generator-level causal handle.
-\textbf{Two descriptions with equivalent predictive power over $\Delta W$
-differ entirely in their causal leverage within the same system at the
-same temperature.}
+We do not interpret this as predictive privilege of either
+description.
+We interpret it as predictive equivalence between two descriptions
+that differ in the kind of information they encode:
+$[W_0, B_{\rm mag}]$ is a global two-scalar summary of the
+configuration and contains no per-site information, while
+$E_{\geq 3}+J$ is built from per-site counts and retains site-resolved
+exposure-class information.
 
-Three caveats.
-First, this does not mean coarse descriptions are generally better:
-$[W_0, B_\mathrm{mag}]$ is predictively sufficient for $\Delta W$ on a
-statistical forecasting task, but it does not identify the structural
-class of sites ($d_c=4$) that drives coarsening.
-The fine structure identifies that class, and that is precisely what
-enables the generator-level intervention of Axis~4.
-Second, the dissociation is a property of this specific predictor-target
-pair at this temperature; it may not hold for other pairs.
-Third, the class-level control (Section~\ref{sec:axis4_random}) shows
-that budget-matched random-site targeting with the same directional logic
-achieves comparable or larger positive gaps; the filter decomposition
-(Section~\ref{sec:filter_decomp}) shows the random-arm effect is not
-attributable to any single $d_c$ class.
-We therefore do not claim $d_c=4$ class identification is uniquely
-necessary; we claim that both interventions condition on the per-site
-quantity $s\cdot h$, which $[W_0, B_{\rm mag}]$ does not encode.
+The asymmetry between these two descriptions is not predictive---they
+agree as predictors of $\Delta W$.
+The asymmetry is in the kind of intervention each can support.
+Every direction-specific generator intervention tested in this paper,
+including the structural $d_c=4$-aligned arm
+(Section~\ref{sec:axis4}), the budget-matched random-site arm
+(Section~\ref{sec:axis4_random}), and the $d_c$-filtered random arms
+(Section~\ref{sec:filter_decomp}), conditions on the per-site Glauber
+acceptance argument $s\cdot h$.
+$[W_0, B_{\rm mag}]$ does not encode $s\cdot h$ at any site; therefore
+no per-site directional protocol can be implemented from
+$[W_0, B_{\rm mag}]$ alone, regardless of how well it predicts
+$\Delta W$.
+
+The dissociation is therefore between
+\emph{global aggregate predictive sufficiency} and
+\emph{local intervention accessibility}.
+It is not a claim that the $d_c=4$ selector is the strongest causal
+handle in magnitude: the random-site arm achieves a larger gap
+($+\RandGapTen$ vs $+\AxisBAlignedTen$ at $\varepsilon=0.10$) and the
+filter decomposition cannot attribute the random-arm magnitude to any
+single $d_c$ class.
+What the dissociation does claim is narrower and more defensible:
+predictive equivalence at the level of two-feature global summaries
+does not imply equivalence at the level of generator-level
+intervention.
+The two notions of usefulness---forecasting $\Delta W$ from a
+description, and supplying the per-site information that
+direction-specific generator interventions require---are different
+properties of a description and need not track each other.
 
 \subsection{Causal protocol in the disordered phase}
 \label{sec:causal_dis}
@@ -960,6 +1007,9 @@ trained on.
 (\textbf{C})~Axis~3 target comparison: $\Delta W$ is the most fine-specific target.
 (\textbf{D})~Axis~4 causal test at $\varepsilon=0.10$: aligned gap on $\Delta W$
 positive, misaligned negative; $\Delta M$ comparatively small.
+A budget-matched random-site arm with the same directional logic
+produces a comparable or larger gap (Section~\ref{sec:axis4_random});
+panel D shows the structural arm only.
 $N=\IsingSamplePred$ predictive worlds, $\IsingSampleCausal$ causal worlds,
 $L=\IsingL$, $K=\IsingK$.}
 \label{fig:summary}
@@ -971,11 +1021,13 @@ predictive information that coarse averaging discards; this advantage
 is regime-specific.
 Under the fine-over-coarse criterion, $\Delta W$ is the most fine-specific
 target.
-The causal sign-flip confirms that the structural handle is
-direction-specific.
-And the predictor-handle dissociation shows that predictive sufficiency
-and causal access are different properties of a description.
-All four results are independently earned and jointly coherent.
+The causal sign-flip confirms that the directional conditioning is
+operative across phases.
+The aggregate-vs-local dissociation shows that global aggregate
+predictive sufficiency does not imply local intervention accessibility.
+Predictive organization, directional causal organization, and
+aggregate-vs-local dissociation are independently tested and jointly
+characterise how descriptions differ in the two senses.
 
 %-----------------------------------------------------------------------
 \section{Discussion}
@@ -1049,17 +1101,16 @@ accuracy and causal leverage.
 The aggregate coarse state $[W_0, B_{\rm mag}]$ and the fine champion
 $E_{\geq 3}+J$ achieve statistically indistinguishable out-of-sample
 $R^2$ for $\Delta W$ (gap CI includes zero).
-Yet only $E_{\geq 3}+J$---or more precisely, the exposed-site geometry
-it encodes---can be used to construct a direction-specific causal
-handle: the generator bias of Axis~4 acts on the locally identified
-$d_c=4$ structural class, which $[W_0, B_{\rm mag}]$ does not resolve.
-The two descriptions encode complementary information:
-$W_0$ summarises \emph{how much} coarsening will occur on average
-(aggregate potential), while exposed-site geometry identifies
-\emph{where} the structurally relevant class of sites is located
-(class-level localisation).
-Equal predictive power masks a qualitative difference in causal
-accessibility.
+Yet only per-site descriptions---of which $E_{\geq 3}+J$ is one
+example---encode the local quantity $s\cdot h$ on which every
+direction-specific generator intervention we test conditions.
+The aggregate $[W_0, B_{\rm mag}]$ summarises \emph{how much}
+coarsening will occur on average; per-site descriptions in addition
+locate the configuration's directional structure
+($\mathrm{sign}(s\cdot h)$ at each site).
+Equal predictive power at the level of global aggregates does not
+imply equal accessibility for per-site directional intervention; this
+is the only causal-accessibility claim we make.
 
 The class-level control (Section~\ref{sec:axis4_random}) refines this
 picture: random-site targeting with the same directional logic
@@ -1105,57 +1156,58 @@ the literal Ridge weights at $L=64$ do not predict well at $L=128$
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have reported four empirical results and one dissociation result
-for fine and coarse descriptions of ordered Ising dynamics.
+We have separated two questions about descriptions in 2D kinetic
+Ising dynamics: how predictive accuracy depends on regime and target,
+and how direction-specific causal interventions depend on what a
+description can encode locally.
 
-\begin{enumerate}
-\item \textbf{Axis~1 (organism comparison):}
-$E_{\geq 3}+J$ achieves $\Delta R^2 = +\AxisOneDR$
-(CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$) for future $\Delta W$ in the
-ordered phase.
+\emph{Predictive organization is regime-dependent.}
+The fine descriptor $E_{\geq 3}+J$ leads the weak block-variance rival
+$\phi_{\rm var8}$ by $\Delta R^2 = +\AxisOneDR$
+($95\%$ CI $[+\AxisOneDRlo,\,+\AxisOneDRhi]$) at $T=\IsingTOrd$, ties
+the stronger global aggregate $[W_0, B_{\rm mag}]$
+($\Delta R^2 = \AxisOneVsWB$, CI includes zero), and the simpler $E$
+undergoes a smooth temperature-dependent sign reversal:
+$+\AxisAOrdDR \to +\CrossTwoZeroDR \to \NearTcDR \to
+\CrossTwoThirtyFiveDR \to \AxisADisDR$ across
+$T \in \{\IsingTOrd, 2.00, \NearTcTemp, 2.35, \IsingTDis\}$.
+Robustness checks across $L\in\{32,64,128\}$ and $K\in\{10,20,50\}$
+confirm stability of the $\Delta R^2$ statistic, although the fitted
+Ridge weights themselves do not transfer across lattice size.
 
-\item \textbf{Axis~2 (regime crossover):}
-The fine advantage reverses: $+\AxisAOrdDR$ (ordered) versus
-$\AxisADisDR$ (disordered).
-The fine-over-coarse advantage is regime-dependent.
+\emph{Direction-specific causal organization is robust across that
+same temperature range.}
+The aligned/misaligned generator protocol passes the sign-flip
+discriminator \AxisBSignFlips{} at $T=\IsingTOrd$ and
+\CausalDisSignFlips{} at $T=\IsingTDis$.
+The temperature reversal of the predictive comparison does not
+propagate to the causal protocol; the same per-site directional
+intervention works in both phases.
 
-\item \textbf{Axis~3 (target specificity):}
-Under the fine-over-coarse criterion, $\Delta W$ is the most
-fine-specific target
-(fine $R^2 = \AxisTwoRFine$, coarse $R^2 = \AxisTwoRCoarse$,
-$\Delta R^2 = +\AxisTwoDR$).
+\emph{Causal magnitude is not single-selector.}
+A budget-matched random-site arm with the same directional logic
+produces gaps at least as large as the structural $d_c=4$ arm
+($+\RandGapTen$ vs $+\AxisBAlignedTen$ at $\varepsilon=0.10$), and a
+filter decomposition cannot attribute the random-arm magnitude to any
+single $d_c$ class.
+We therefore do not claim that the structural selector is uniquely
+strongest in causal magnitude; the surviving causal regularity is
+sign structure, not selector-magnitude privilege.
 
-\item \textbf{Axis~4 (direction-specific causal control):}
-Structure-aligned generator bias at exposed sites produces a \AxisBSignFlips{}
-sign-flip on future $\Delta W$ in the ordered phase, and
-\CausalDisSignFlips{} in the disordered phase as well
-(Section~\ref{sec:causal_dis}).
-The causal handle does not inherit the predictive sign reversal of
-Axis~2: per-site directional intervention at $d_c=4$ sites works
-across both phases.
-All CIs exclude zero.
+\emph{The surviving dissociation is aggregate-vs-local.}
+$[W_0, B_{\rm mag}]$ matches $E_{\geq 3}+J$ as a predictor of
+$\Delta W$ but does not encode the per-site quantity $s\cdot h$ on
+which every direction-specific generator intervention conditions.
+Predictive equivalence at the level of global summaries does not
+imply equivalence at the level of generator-level intervention.
 
-\item \textbf{Predictor-handle dissociation:}
-$[W_0, B_\mathrm{mag}]$ ($R^2 = \AxisCRWB$) and $E_{\geq 3}+J$
-($R^2 \approx \AxisOneDR$) are statistically indistinguishable as
-predictors of $\Delta W$ ($\Delta R^2 = \AxisOneVsWB$, 95\% CI includes
-zero), yet only per-site fine structure enables a direction-specific causal
-handle: global aggregate descriptions cannot supply the per-site directional
-information required for the generator bias of Axis~4.
-The best predictor and the best causal handle are different objects.
-\end{enumerate}
-
-Additional robustness results (Section~\ref{sec:robustness}) confirm
-finite-size stability of $\Delta R^2$ across $L\in\{32,64,128\}$
-(though the fitted Ridge weights themselves are $L$-specific),
-horizon robustness across $K\in\{10,20,50\}$ (fine advantage increases
-weakly with $K$), and a smooth $E$ vs $\phi_{\rm var8}$ crossover
-through criticality ($T\in\{1.80,2.00,2.20,2.35,2.50\}$ traces
-$+0.18\to+0.11\to0\to0\to-0.07$).
-
-In this system, the relative usefulness of fine and coarse descriptions
-depends on the target, the regime, and the type of causal access sought.
-The Ising model provides a clean test case for these distinctions.
+The robust regularities are therefore: predictive structure that
+depends on regime and varies smoothly with temperature;
+direction-specific causal sign control that does not inherit the
+predictive sign reversal; and a dissociation that lives at the
+boundary between global aggregate prediction and local intervention,
+not at the boundary between one preferred selector and the rest of
+the descriptor space.
 
 \begin{acknowledgments}
 The author thanks the open-source scientific Python ecosystem (NumPy, Numba,
